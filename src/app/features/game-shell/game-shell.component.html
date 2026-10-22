@@ -1,0 +1,5 @@
+<div #host class="host"></div>
+<a class="menu-link" routerLink="/">Menu</a>
+@if (devTools) {
+  <app-dev-overlay [sample]="perf()" />
+}
