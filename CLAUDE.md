@@ -19,7 +19,7 @@ The owner's top priorities, in order: **a measured, stutter-free frame rate**, w
 - Work happens **one phase at a time** (`docs/plan.md`). Each phase ends with a **browser review by the owner**, using that phase's checklist plus the dev-overlay numbers. The next phase does not start until the owner signs off.
 - A phase's detailed plan is written in `docs/plans/` **just before the phase starts**, using what was learned in the previous review. Mark the phase status in `docs/plan.md`.
 - Execution uses subagent-driven development: one task at a time, with a review after each task.
-- **Deployment target is GitHub Pages.** The owner has deferred the account, repo name and visibility. Keep the build Pages-ready (relative base-href, hash routing, `workflow_dispatch` workflow), and ask for those details in Phase 8. Never create remotes or deploy without asking.
+- **Deployment target is GitHub Pages.** The code lives in the **private** GitHub repo `purkayasta/super-piper`. Free Pages needs a public repo, so ask about visibility in Phase 8. Keep the build Pages-ready (relative base-href, hash routing, `workflow_dispatch` workflow). Never deploy without asking.
 
 ## Hard rules
 
@@ -40,7 +40,7 @@ The owner's top priorities, in order: **a measured, stutter-free frame rate**, w
 - Before every commit, run `npx prettier --write` on **changed files only**, and include the result in the commit. Never reformat untouched files.
 - Write tests first (TDD) for pure logic.
 - **Never `git commit` without the owner's explicit permission**, even where a plan says "commit". Leave changes uncommitted, show what changed, and ask. Subagents must not commit either.
-- **Git** is set up locally (2026-10-22): `development` plus phase branches. There is no remote yet. Do not add remotes or push until the owner asks (Phase 8).
+- **Git:** remote `origin` is `github.com/purkayasta/super-piper` (private). Only `development` is pushed. Phase branches stay local and are merged into `development` before a push. **Ask before every push**, and never force-push.
 - **Branches (once git exists):** each phase has its own branch (`phase-N-<name>`) taken from `development`. Phase branches merge into `development`. `development` merges into `main` only when everything is done. **Ask before every merge.**
 
 ## Commands
