@@ -19,6 +19,7 @@
   - run max speed `153.75`
   - walk acceleration `133.59375`
   - run acceleration `200.390625`
+  - air acceleration `133.59375` (added in Task 2 so the panel can tune air control)
   - release deceleration `182.8125`
   - skid deceleration `365.625`
   - max fall speed `270`
@@ -134,7 +135,7 @@ Modified:
 export interface JumpTier { minTakeoffSpeed: number; launchSpeed: number; holdGravity: number; fallGravity: number; }
 export interface MovementTuning {
   walkMaxSpeed: number; runMaxSpeed: number; walkAccel: number; runAccel: number;
-  releaseDecel: number; skidDecel: number; maxFallSpeed: number;
+  airAccel: number; releaseDecel: number; skidDecel: number; maxFallSpeed: number;
   jumpTiers: readonly [JumpTier, JumpTier, JumpTier];
   coyoteMs: number; jumpBufferMs: number; cornerNudgePx: number; maxStepSeconds: number;
   cameraLeadFraction: number;
