@@ -13,3 +13,15 @@ export function nextCameraScrollX(
 export function clampToCameraLeft(playerLeft: number, viewLeft: number): number {
   return Math.max(playerLeft, viewLeft);
 }
+
+export function nextPixelViewLeft(
+  currentViewLeft: number,
+  playerX: number,
+  viewWidth: number,
+  levelWidth: number,
+  leadFraction: number,
+): number {
+  return Math.floor(
+    nextCameraScrollX(currentViewLeft, Math.floor(playerX), viewWidth, levelWidth, leadFraction),
+  );
+}

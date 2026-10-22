@@ -67,6 +67,7 @@ export function simulateJump(
   let y = 0;
   let takeoffX = 0;
   let minY = 0;
+  if (runUpSteps === 0) controller.step(actions(), contacts({ onGround: true }), dt);
   for (let i = 0; i < maxSteps; i++) {
     const jumping = i >= runUpSteps && i < runUpSteps + holdSteps;
     if (i === runUpSteps) takeoffX = x;

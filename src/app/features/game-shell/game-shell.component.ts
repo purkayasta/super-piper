@@ -6,12 +6,11 @@ import {
   ElementRef,
   afterNextRender,
   inject,
-  isDevMode,
   viewChild,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { GameSessionService } from '../../core/services/game-session.service';
-import { isDevToolsEnabled } from '../../core/utilities/dev-tools';
+import { DEV_TOOLS_ENABLED } from '../../core/utilities/dev-tools';
 import { DevOverlayComponent } from '../../shared/components/dev-overlay/dev-overlay.component';
 
 @Component({
@@ -26,7 +25,9 @@ export class GameShellComponent {
   private readonly document = inject(DOCUMENT);
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
 
-  protected readonly devTools = isDevToolsEnabled(this.document.location.search, !isDevMode());
+  private readonly stageId = inject(ActivatedRoute).snapshot.paramMap.get('stageId') ?? '';
+
+  protected readonly devTools = inject(DEV_TOOLS_ENABLED);
   protected readonly perf = this.session.perf;
 
   constructor() {
@@ -34,7 +35,11 @@ export class GameShellComponent {
 
     afterNextRender(() => {
       const hostElement = this.host().nativeElement;
-      this.session.attach(hostElement, { quality: 'high', devTools: this.devTools });
+      this.session.attach(hostElement, {
+        quality: 'high',
+        devTools: this.devTools,
+        initialStageId: this.stageId,
+      });
       this.observeResize(hostElement, destroyRef);
     });
 

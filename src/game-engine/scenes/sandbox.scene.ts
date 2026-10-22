@@ -1,15 +1,10 @@
 import Phaser from 'phaser';
-import {
-  LOGICAL_HEIGHT,
-  LOGICAL_WIDTH,
-  PERF_SAMPLE_INTERVAL_MS,
-} from '../configuration/performance.config';
-import { FrameStats, rollingWindowCapacity } from '../core/frame-stats';
+import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../configuration/performance.config';
 import type { GameBridge } from '../core/game-bridge';
 import type { GameOptions } from '../core/game-factory';
 import { readBridge, readOptions, readZoom, registryChangeEvent } from '../core/registry-keys';
-import { StepStats } from '../core/step-stats';
-import { applyDetectedPhysicsRate, recordPhysicsStepFrame } from './physics-rate';
+import { PerfSampler } from './perf-sampler';
+import { applyDetectedPhysicsRate } from './physics-rate';
 
 const TILE_SIZE = 16;
 const TILE_COLUMNS = 27;
@@ -23,11 +18,7 @@ const SQUARE_TEXTURE = 'sandbox-square';
 export class SandboxScene extends Phaser.Scene {
   private bridge!: GameBridge;
   private options!: GameOptions;
-  private frameStats!: FrameStats;
-  private sinceLastSampleMs = 0;
-  private skipNextStepSample = true;
-  private stepStats!: StepStats;
-  private refreshHz = 0;
+  private perfSampler!: PerfSampler;
 
   constructor() {
     super('SandboxScene');
@@ -36,11 +27,8 @@ export class SandboxScene extends Phaser.Scene {
   create(): void {
     this.bridge = readBridge(this.registry)!;
     this.options = readOptions(this.registry)!;
-    this.refreshHz = applyDetectedPhysicsRate(this);
-    this.frameStats = new FrameStats(rollingWindowCapacity(this.refreshHz));
-    this.stepStats = new StepStats();
-    this.sinceLastSampleMs = 0;
-    this.skipNextStepSample = true;
+    const refreshHz = applyDetectedPhysicsRate(this);
+    this.perfSampler = new PerfSampler(this, this.bridge, refreshHz);
 
     this.physics.world.setBounds(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
@@ -74,34 +62,7 @@ export class SandboxScene extends Phaser.Scene {
   }
 
   override update(): void {
-    if (!this.options.devTools) return;
-    const delta = this.game.loop.rawDelta;
-    this.frameStats.push(delta);
-    this.recordSteps(delta);
-    this.sinceLastSampleMs += delta;
-    if (this.sinceLastSampleMs < PERF_SAMPLE_INTERVAL_MS) return;
-    this.sinceLastSampleMs = 0;
-    this.bridge.emit({
-      type: 'perfSample',
-      sample: {
-        fps: this.frameStats.fps,
-        avgFrameMs: this.frameStats.average,
-        p95FrameMs: this.frameStats.p95,
-        longFrames: this.frameStats.totalLongFrames,
-        offStepFrames: this.stepStats.offStepFrames,
-        refreshHz: this.refreshHz,
-        physicsHz: this.physics.world.fps,
-        activeBodies: this.physics.world.bodies.size,
-      },
-    });
-  }
-
-  private recordSteps(frameMs: number): void {
-    if (this.skipNextStepSample) {
-      this.skipNextStepSample = false;
-      return;
-    }
-    recordPhysicsStepFrame(this, this.stepStats, frameMs);
+    if (this.options.devTools) this.perfSampler.recordFrame();
   }
 
   private fitCameraToLogicalView(zoom: number): void {

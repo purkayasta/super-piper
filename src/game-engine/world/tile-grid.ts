@@ -21,3 +21,16 @@ export function parseTileRows(
   }
   return { tiles, width, height: rows.length };
 }
+
+export interface TileCoordinate {
+  column: number;
+  row: number;
+}
+
+export function findSymbol(rows: readonly string[], symbol: string): TileCoordinate | null {
+  for (let row = 0; row < rows.length; row++) {
+    const column = rows[row].indexOf(symbol);
+    if (column >= 0) return { column, row };
+  }
+  return null;
+}

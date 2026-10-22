@@ -273,4 +273,37 @@ describe('PlayerController', () => {
     stepMany(controller, 3 * HZ, actions({ right: true }));
     expect(controller.vx).toBeCloseTo(50, 5);
   });
+
+  it('reset returns to a standing start that matches a fresh controller', () => {
+    const used = runningAt();
+    used.step(actions({ jump: true, left: true }), GROUND, DT);
+    stepMany(used, 10, actions({ jump: true, left: true }), AIR);
+    used.reset();
+    const fresh = new PlayerController(DEFAULT_MOVEMENT);
+    const input = actions({ right: true, jump: true });
+    for (let i = 0; i < 30; i++) {
+      used.step(input, i === 0 ? GROUND : AIR, DT);
+      fresh.step(input, i === 0 ? GROUND : AIR, DT);
+      expect(used.bodyVx).toBe(fresh.bodyVx);
+      expect(used.bodyVy).toBe(fresh.bodyVy);
+    }
+    expect(used.facing).toBe(fresh.facing);
+  });
+
+  it('reset needs a fresh jump press, so holding jump through a respawn does not jump', () => {
+    const controller = new PlayerController(DEFAULT_MOVEMENT);
+    controller.reset();
+    const holding = actions({ jump: true });
+    stepMany(controller, 5, holding);
+    expect(controller.vy).toBe(0);
+    controller.step(actions(), GROUND, DT);
+    controller.step(holding, GROUND, DT);
+    expect(controller.vy).toBeLessThan(0);
+  });
+
+  it('a fresh controller needs a fresh jump press when jump is already held', () => {
+    const controller = new PlayerController(DEFAULT_MOVEMENT);
+    stepMany(controller, 5, actions({ jump: true }));
+    expect(controller.vy).toBe(0);
+  });
 });

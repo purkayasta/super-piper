@@ -27,7 +27,7 @@ export class PlayerController {
   private fallGravityLocked = false;
   private msSinceGrounded = Infinity;
   private msSinceJumpPress = Infinity;
-  private jumpHeldLastStep = false;
+  private jumpHeldLastStep = true;
 
   private segmentVelocity = 0;
   private segmentAverage = 0;
@@ -63,6 +63,21 @@ export class PlayerController {
 
   setTuning(tuning: MovementTuning): void {
     this.tuning = tuning;
+  }
+
+  reset(): void {
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.midpointX = 0;
+    this.midpointY = 0;
+    this.facingDirection = 1;
+    this.currentMode = 'ground';
+    this.tierIndex = 0;
+    this.airMaxSpeed = this.tuning.walkMaxSpeed;
+    this.fallGravityLocked = false;
+    this.msSinceGrounded = Infinity;
+    this.msSinceJumpPress = Infinity;
+    this.jumpHeldLastStep = true;
   }
 
   step(actions: ActionState, contacts: Contacts, dtSeconds: number): void {

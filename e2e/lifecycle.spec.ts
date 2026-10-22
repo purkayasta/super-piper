@@ -4,6 +4,10 @@ const HEAP_GROWTH_LIMIT_BYTES = 5 * 1024 * 1024;
 const MENU_CYCLES = 20;
 const GC_PASSES = 3;
 const RAPID_CYCLES = 10;
+const PIP_CAP_COLOR = [0x22, 0xb3, 0xc8] as const;
+const COLOR_TOLERANCE = 24;
+const HOLD_RIGHT_MS = 1000;
+const MIN_SCREEN_TRAVEL_CSS_PX = 60;
 
 let consoleErrors: string[];
 let pageErrors: string[];
@@ -45,9 +49,58 @@ async function collectedHeapBytes(page: Page) {
   );
 }
 
+async function pipScreenX(page: Page): Promise<number | null> {
+  const png = await page.locator('canvas').screenshot();
+  return page.evaluate(
+    async ({ base64, cap, tolerance }) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${base64}`;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext('2d')!;
+      context.drawImage(image, 0, 0);
+      const { data, width } = context.getImageData(0, 0, image.width, image.height);
+      let sum = 0;
+      let count = 0;
+      for (let index = 0; index < data.length; index += 4) {
+        const matches =
+          Math.abs(data[index] - cap[0]) <= tolerance &&
+          Math.abs(data[index + 1] - cap[1]) <= tolerance &&
+          Math.abs(data[index + 2] - cap[2]) <= tolerance;
+        if (!matches) continue;
+        sum += (index / 4) % width;
+        count++;
+      }
+      return count > 0 ? sum / count : null;
+    },
+    { base64: png.toString('base64'), cap: PIP_CAP_COLOR, tolerance: COLOR_TOLERANCE },
+  );
+}
+
 test('menu to play shows exactly one canvas', async ({ page }) => {
+  await page.goto('/#/play/test-room');
+  await expect(page.locator('canvas')).toHaveCount(1);
+});
+
+test('the sandbox stage still loads', async ({ page }) => {
   await page.goto('/#/play/sandbox');
   await expect(page.locator('canvas')).toHaveCount(1);
+});
+
+test('holding ArrowRight moves Pip to the right', async ({ page }) => {
+  await page.goto('/#/play/test-room');
+  await expect.poll(() => pipScreenX(page), { timeout: 15_000 }).not.toBeNull();
+  const startX = (await pipScreenX(page))!;
+
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(HOLD_RIGHT_MS);
+  await page.keyboard.up('ArrowRight');
+
+  const endX = (await pipScreenX(page))!;
+  console.log(`Pip screen travel after ${HOLD_RIGHT_MS}ms: ${endX - startX} css px`);
+  expect(endX - startX).toBeGreaterThan(MIN_SCREEN_TRAVEL_CSS_PX);
 });
 
 test('twenty play-menu cycles leave one canvas and bounded heap', async ({ page }) => {
@@ -76,7 +129,7 @@ test('rapid toggling during boot leaves one canvas', async ({ page }) => {
 
 test('resize recomputes canvas size', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto('/#/play/sandbox');
+  await page.goto('/#/play/test-room');
   await expect(page.locator('canvas')).toHaveAttribute('width', '1296');
   await page.setViewportSize({ width: 1920, height: 1080 });
   await expect(page.locator('canvas')).toHaveAttribute('width', '2160');
@@ -95,7 +148,7 @@ test('dpi change recomputes canvas size', async ({ page }) => {
     };
   });
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto('/#/play/sandbox');
+  await page.goto('/#/play/test-room');
   await expect(page.locator('canvas')).toHaveAttribute('width', '1296');
   const session = await page.context().newCDPSession(page);
   await session.send('Emulation.setDeviceMetricsOverride', {
@@ -120,6 +173,6 @@ test('dpi change recomputes canvas size', async ({ page }) => {
 });
 
 test('canvas uses smooth browser scaling for the final fit', async ({ page }) => {
-  await page.goto('/#/play/sandbox');
+  await page.goto('/#/play/test-room');
   await expect(page.locator('canvas')).toHaveCSS('image-rendering', 'auto');
 });
