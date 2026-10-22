@@ -8,7 +8,7 @@ Each phase has its own detailed task plan in [`plans/`](plans/). Detailed plans 
 
 | # | Phase | Detailed plan | Status |
 |---|---|---|---|
-| 1 | Skeleton | [`plans/phase-1-skeleton.md`](plans/phase-1-skeleton.md) | Ready |
+| 1 | Skeleton | [`plans/phase-1-skeleton.md`](plans/phase-1-skeleton.md) | Done |
 | 2 | Pip's feel | [`plans/phase-2-feel.md`](plans/phase-2-feel.md) | Ready |
 | 3 | Art pipeline + World 1-1 | written after Phase 2 review | — |
 | 4 | Enemies, power-ups, rules | written after Phase 3 review | — |
@@ -42,6 +42,15 @@ Each phase has its own detailed task plan in [`plans/`](plans/). Detailed plans 
 - The dev overlay shows about 60 FPS (or your monitor's rate), a p95 frame time close to the frame budget, and 0 long frames.
 - Resizing the window keeps pixels sharp, with no blur or shimmer.
 - `npm run preview` (the production build) behaves the same.
+
+**Measured (2026-10-22, dev build, headed Chromium 156, NVIDIA RTX 3050 Laptop, 60Hz display, 10s run):**
+
+| Viewport | FPS | avg ms | p95 ms | Long frames | Refresh / physics Hz | Canvas |
+|---|---|---|---|---|---|---|
+| 1280×720 | 59.9 | 16.68 | 16.80 | 0 | 60 / 60 | 1296×720 |
+| 1920×1080 | 59.9 | 16.68 | 16.80 | 0 | 60 / 60 | 2160×1200 |
+
+Initial bundle 228.9 kB (62.7 kB transfer). Phaser is in the lazy `game-shell-routes` chunk, 1.21 MB (266.5 kB transfer). Heap growth over 20 Play/Menu cycles was 1.57 MB (limit 5 MB). 120/144Hz displays have not been measured yet.
 
 ## Phase 2: Pip's feel
 **Builds:**
