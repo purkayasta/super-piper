@@ -26,9 +26,11 @@ The workspace lives at the repo root, `C:\Users\Home\source\repos\mario`, follow
 
 ### 2.1 Resolution and scaling
 - **Logical view:** 432×240 world pixels, which is 27×15 tiles of 16px at a 1.8:1 aspect ratio. Level design assumes this view.
-- **Canvas size:** 432N × 240N, where **N is a whole number**. N is the smallest value that covers the display height, capped by quality: Low ≤ 3 (1296×720), Medium ≤ 4 (1728×960), High ≤ 6. The camera zooms by N, so every gameplay pixel is exactly N×N screen pixels.
-- `Scale.FIT` with letterboxing fits the canvas to the window. The browser only ever *downscales* slightly, which stays crisp.
-- `pixelArt: true` gives nearest-neighbour filtering by default. `roundPixels: true` prevents sub-pixel shimmer. WebGL is used where supported, with Canvas as the fallback (`Phaser.AUTO`).
+- **Canvas size:** 432N × 240N, where **N is a whole number**: `N = clamp(ceil(min(h/240, w/432) × devicePixelRatio), 1, cap)`, using the game host's CSS width and height. The cap depends on quality: Low ≤ 3 (1296×720), Medium ≤ 4 (1728×960), High ≤ 6. Taking the smaller of the two ratios keeps half-screen and 16:10 windows from drawing a canvas 2–3× larger than they need. The camera zooms by N, so inside the canvas every gameplay pixel is exactly N×N canvas pixels.
+- N is recomputed on window resize and when `devicePixelRatio` changes, for example when the window moves to a monitor with a different scale.
+- **Sharp scaling (owner decision, Phase 1):** `Scale.FIT` fits the canvas to the window, usually as a small downscale. Phaser's `pixelArt` puts `image-rendering: pixelated` on the canvas element. That is overridden to `auto` after boot, so this final fractional fit is smooth instead of nearest-neighbour. The result fills the window with no shimmer and no uneven pixels, and an exact fit stays pixel-perfect.
+- **Camera:** keep the default origin (0.5), so Phaser's `worldView`, bounds and culling maths stay correct. Position the view with `camera.centerOn(viewLeft + 216, 120)`. Never assign `scrollX` to the view's left edge: at zoom N they differ by `216·(N−1)` px.
+- `pixelArt: true` gives nearest-neighbour filtering inside the canvas by default. `roundPixels: true` prevents sub-pixel shimmer. WebGL is used where supported, with Canvas as the fallback (`Phaser.AUTO`).
 
 ### 2.2 Two visual layers, one camera
 - **Gameplay layer:** tilemap, sprites, particles. Nearest-neighbour filtering, 16px world units.
@@ -46,7 +48,9 @@ The workspace lives at the repo root, `C:\Users\Home\source\repos\mario`, follow
 ## 3. Simulation and timing
 
 - **Phaser's single game loop.** No second loop.
-- **Arcade Physics steps at the display's refresh rate.** During boot, about 30 `requestAnimationFrame` deltas are measured to detect 60, 75, 120 or 144Hz, then `world.setFPS(rate)` is called.
+- **No frame-rate cap (owner decision).** Rendering follows the display's refresh rate. 60fps is the floor, not the target, and a 120 or 144Hz display runs at 120 or 144fps.
+- **Arcade Physics steps at the display's refresh rate.** During boot, about 30 raw `requestAnimationFrame` deltas (`game.loop.rawDelta`, not the smoothed `delta`) are measured. Their median is snapped to the nearest supported rate (60, 75, 90, 100, 120, 144, 165 or 240Hz), then `world.setFPS(rate)` is called.
+- **Arcade step order (Phaser 3.90):** `World.step` integrates the bodies, separates the colliders, then emits `worldstep`. A velocity set on `worldstep` therefore drives the *next* step.
 - Every tuning value is stored in **per-second units**, converted from the px/frame-at-60Hz table in `design.md` §4. This means a 120Hz display gets twice as many smaller steps rather than choppy motion.
 - **Feel consistency is enforced by test.** The Pip controller is pure TypeScript and can be simulated without Phaser. A unit test asserts that jump apex height and jump distance at 60, 120 and 144 steps per second match within 1px.
 - If that test cannot pass, the fallback is a fixed 60Hz simulation with render interpolation for Pip, enemies and the camera. *(This is the one known technical risk, and it is tested in Phase 2, not left until the end.)*
@@ -142,9 +146,10 @@ Hand-made art can replace any generated file by being placed at the manifest pat
 
 | Metric | Target |
 |---|---|
+| Frame rate | At least 60fps, and the display's full refresh rate on high-refresh displays (no cap) |
 | Average frame time (60Hz, representative stage, High) | ≤ 16.7ms with gameplay script ≤ 6ms |
 | 95th-percentile frame time | ≤ 17.5ms |
-| Long frames (> 50ms) during gameplay | 0 |
+| Long frames (> 50ms) during gameplay, counted over the whole session | 0 |
 | Active physics bodies | ≤ 40 |
 | JS heap growth after 20 stage restarts | < 5MB |
 | Initial load to menu (broadband, cold cache) | < 3s |
@@ -153,8 +158,9 @@ Hand-made art can replace any generated file by being placed at the manifest pat
 ### 10.1 Dev overlay
 Toggled with the backtick key, and available on the live site with `?dev=1` so reviews work there. It shows:
 - FPS
-- average and p95 frame time over a rolling 2s
-- long-frame count
+- average and p95 frame time over a rolling 2s, measured from raw frame deltas
+- long-frame count, as a session total so a hitch never ages out of view
+- off-step frames: frames where the physics ran 0 or 2+ steps, a sign of drift between the step rate and the display's real refresh
 - detected refresh rate and physics step rate
 - active bodies and the size of each pool
 

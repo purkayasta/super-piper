@@ -2,7 +2,7 @@
 
 An original browser platformer that **plays and feels like Super Mario Bros. (NES, World 1-1)**. Its hero is **Pip the courier**, and it has crisp pixel-art gameplay in front of rich, high-resolution, layered scenery. Built with Angular 22 and Phaser 3.90, and deployed as a static site to GitHub Pages.
 
-The owner's top priorities, in order: **a measured, stutter-free 60fps**, then **excellent look and feel**.
+The owner's top priorities, in order: **a measured, stutter-free frame rate**, with 60fps as the floor and the display's full refresh rate where it is higher (no 60fps cap), then **excellent look and feel**.
 
 ## Read first
 
@@ -25,7 +25,7 @@ The owner's top priorities, in order: **a measured, stutter-free 60fps**, then *
 
 - **Boundaries (`game.md` §3):** Angular owns menus, navigation, overlays, saves and settings. Phaser owns everything per-frame. They talk only through the typed `GameBridge` (`src/game-engine/core/game-events.ts`), via `GameSessionService`. **Never emit bridge events or update signals every frame.** Emit on change only. Perf samples go out every 250ms, and only with dev tools on.
 - Phaser may be imported only in `src/game-engine/bootstrap/**`, `scenes/**`, and the Phaser glue classes, such as `entities/player/player.ts`. Keep logic pure and Vitest-testable. Phaser stays out of the initial bundle and is loaded only by the play route.
-- **Rendering:** logical view 432×240. Canvas `432N × 240N` with N a whole number (quality caps low 3, medium 4, high 6). `pixelArt` and `roundPixels` on. Scenery textures use linear filtering. No full-screen post-processing.
+- **Rendering:** logical view 432×240. Canvas `432N × 240N` with N a whole number, `N = ceil(min(h/240, w/432) × dpr)` (quality caps low 3, medium 4, high 6). `pixelArt` and `roundPixels` on. The canvas element's final fit to the window is smooth (`image-rendering: auto`, sharp scaling). The camera keeps its default origin and is positioned with `centerOn`. Scenery textures use linear filtering. No full-screen post-processing.
 - **Physics:** Arcade, stepped at the detected display refresh rate. All tuning is in per-second units in `configuration/*.config.ts`. The player controller runs per world step and hands Arcade **midpoint velocity**. Jumps must match within 1px at 60, 120 and 144Hz, and a test enforces this.
 - **No per-frame allocation** in update paths. Use pools for short-lived objects. Collision callbacks stay short.
 - **Original IP only:** no Nintendo sprites, music, names or exact level layouts. Art and audio are generated in code at build time, and every asset is referenced by a stable manifest ID so it can be swapped later.
@@ -40,7 +40,7 @@ The owner's top priorities, in order: **a measured, stutter-free 60fps**, then *
 - Before every commit, run `npx prettier --write` on **changed files only**, and include the result in the commit. Never reformat untouched files.
 - Write tests first (TDD) for pure logic.
 - **Never `git commit` without the owner's explicit permission**, even where a plan says "commit". Leave changes uncommitted, show what changed, and ask. Subagents must not commit either.
-- **Git is not set up yet.** Do not run `git init` or any other git command that changes state until the owner asks for it.
+- **Git** is set up locally (2026-10-22): `development` plus phase branches. There is no remote yet. Do not add remotes or push until the owner asks (Phase 8).
 - **Branches (once git exists):** each phase has its own branch (`phase-N-<name>`) taken from `development`. Phase branches merge into `development`. `development` merges into `main` only when everything is done. **Ask before every merge.**
 
 ## Commands

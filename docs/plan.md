@@ -9,7 +9,7 @@ Each phase has its own detailed task plan in [`plans/`](plans/). Detailed plans 
 | # | Phase | Detailed plan | Status |
 |---|---|---|---|
 | 1 | Skeleton | [`plans/phase-1-skeleton.md`](plans/phase-1-skeleton.md) | Done |
-| 2 | Pip's feel | [`plans/phase-2-feel.md`](plans/phase-2-feel.md) | Ready |
+| 2 | Pip's feel | [`plans/phase-2-feel.md`](plans/phase-2-feel.md) | In progress |
 | 3 | Art pipeline + World 1-1 | written after Phase 2 review | — |
 | 4 | Enemies, power-ups, rules | written after Phase 3 review | — |
 | 5 | Sound and music | written after Phase 4 review | — |
