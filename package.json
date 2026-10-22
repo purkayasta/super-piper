@@ -5,6 +5,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:pages": "ng build --base-href ./",
     "watch": "ng build --watch --configuration development",
     "preview": "ng build && npx -y http-server dist/pip-delivery/browser -p 4300 -c-1",
     "test": "ng test --watch=false",
