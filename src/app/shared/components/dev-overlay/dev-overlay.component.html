@@ -1,0 +1,19 @@
+@if (visible()) {
+  <dl class="dev-overlay">
+    @let current = sample();
+    <dt>FPS</dt>
+    <dd>{{ current ? (current.fps | number: '1.1-1') : '—' }}</dd>
+    <dt>avg ms</dt>
+    <dd>{{ current ? (current.avgFrameMs | number: '1.2-2') : '—' }}</dd>
+    <dt>p95 ms</dt>
+    <dd>{{ current ? (current.p95FrameMs | number: '1.2-2') : '—' }}</dd>
+    <dt>long frames</dt>
+    <dd>{{ current ? current.longFrames : '—' }}</dd>
+    <dt>refresh Hz</dt>
+    <dd>{{ current ? current.refreshHz : '—' }}</dd>
+    <dt>physics Hz</dt>
+    <dd>{{ current ? current.physicsHz : '—' }}</dd>
+    <dt>bodies</dt>
+    <dd>{{ current ? current.activeBodies : '—' }}</dd>
+  </dl>
+}

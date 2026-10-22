@@ -1,0 +1,11 @@
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('../public/assets/fonts/PressStart2P-Regular.ttf') format('truetype');
+  font-display: swap;
+}
+
+html,
+body {
+  margin: 0;
+  background: #000;
+}

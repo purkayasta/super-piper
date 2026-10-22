@@ -1,0 +1,40 @@
+:host {
+  display: block;
+  height: 100dvh;
+  background: #14213d;
+  color: #fff;
+  font-family: 'Press Start 2P', monospace;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  height: 100%;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.25rem, 5vw, 3rem);
+  color: #ffd23f;
+  text-shadow: 0.25rem 0.25rem 0 #c1121f;
+  text-align: center;
+}
+
+.play {
+  padding: 1rem 2rem;
+  border: 0.25rem solid #fff;
+  color: #fff;
+  font-size: 1.25rem;
+  text-decoration: none;
+}
+
+.play:hover,
+.play:focus-visible {
+  background: #ffd23f;
+  border-color: #ffd23f;
+  color: #14213d;
+  outline: none;
+}
