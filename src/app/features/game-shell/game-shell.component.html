@@ -2,4 +2,5 @@
 <a class="menu-link" routerLink="/">Menu</a>
 @if (devTools) {
   <app-dev-overlay [sample]="perf()" />
+  <app-tuning-panel (tuningChange)="applyTuning($event)" />
 }

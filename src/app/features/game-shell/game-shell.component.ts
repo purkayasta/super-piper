@@ -11,10 +11,12 @@ import {
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { GameSessionService } from '../../core/services/game-session.service';
 import { DEV_TOOLS_ENABLED } from '../../core/utilities/dev-tools';
+import type { MovementTuning } from '../../../game-engine/configuration/movement.config';
 import { DevOverlayComponent } from '../../shared/components/dev-overlay/dev-overlay.component';
+import { TuningPanelComponent } from '../../shared/components/tuning-panel/tuning-panel.component';
 
 @Component({
-  imports: [RouterLink, DevOverlayComponent],
+  imports: [RouterLink, DevOverlayComponent, TuningPanelComponent],
   selector: 'app-game-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './game-shell.component.css',
@@ -44,6 +46,10 @@ export class GameShellComponent {
     });
 
     destroyRef.onDestroy(() => this.session.detach());
+  }
+
+  protected applyTuning(tuning: MovementTuning): void {
+    this.session.send({ type: 'applyTuning', tuning });
   }
 
   private observeResize(hostElement: HTMLElement, destroyRef: DestroyRef): void {
