@@ -1,3 +1,5 @@
+import type { MovementTuning } from '../configuration/movement.config';
+
 export type StageId = string;
 
 export type QualityLevel = 'low' | 'medium' | 'high';
@@ -13,6 +15,7 @@ export interface PerfSample {
   avgFrameMs: number;
   p95FrameMs: number;
   longFrames: number;
+  offStepFrames: number;
   refreshHz: number;
   physicsHz: number;
   activeBodies: number;
@@ -24,7 +27,8 @@ export type GameCommand =
   | { type: 'resume' }
   | { type: 'restart' }
   | { type: 'quitToMap' }
-  | { type: 'applySettings'; settings: GameplaySettings };
+  | { type: 'applySettings'; settings: GameplaySettings }
+  | { type: 'applyTuning'; tuning: MovementTuning };
 
 export type GameEvent =
   | { type: 'loadProgress'; progress: number }

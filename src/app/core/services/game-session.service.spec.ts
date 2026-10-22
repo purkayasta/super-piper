@@ -5,13 +5,14 @@ import type { PerfSample } from '../../../game-engine/core/game-events';
 import { GAME_FACTORY, type GameHandle, type GameOptions } from '../game-factory.token';
 import { GameSessionService } from './game-session.service';
 
-const options: GameOptions = { quality: 'high', devTools: true };
+const options: GameOptions = { quality: 'high', devTools: true, initialStageId: 'test-room' };
 
 const sample: PerfSample = {
   fps: 60,
   avgFrameMs: 16.6,
   p95FrameMs: 17,
   longFrames: 0,
+  offStepFrames: 0,
   refreshHz: 60,
   physicsHz: 60,
   activeBodies: 3,

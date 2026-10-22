@@ -6,16 +6,17 @@ import {
   ElementRef,
   afterNextRender,
   inject,
-  isDevMode,
   viewChild,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { GameSessionService } from '../../core/services/game-session.service';
-import { isDevToolsEnabled } from '../../core/utilities/dev-tools';
+import { DEV_TOOLS_ENABLED } from '../../core/utilities/dev-tools';
+import type { MovementTuning } from '../../../game-engine/configuration/movement.config';
 import { DevOverlayComponent } from '../../shared/components/dev-overlay/dev-overlay.component';
+import { TuningPanelComponent } from '../../shared/components/tuning-panel/tuning-panel.component';
 
 @Component({
-  imports: [RouterLink, DevOverlayComponent],
+  imports: [RouterLink, DevOverlayComponent, TuningPanelComponent],
   selector: 'app-game-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './game-shell.component.css',
@@ -26,7 +27,9 @@ export class GameShellComponent {
   private readonly document = inject(DOCUMENT);
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
 
-  protected readonly devTools = isDevToolsEnabled(this.document.location.search, !isDevMode());
+  private readonly stageId = inject(ActivatedRoute).snapshot.paramMap.get('stageId') ?? '';
+
+  protected readonly devTools = inject(DEV_TOOLS_ENABLED);
   protected readonly perf = this.session.perf;
 
   constructor() {
@@ -34,11 +37,19 @@ export class GameShellComponent {
 
     afterNextRender(() => {
       const hostElement = this.host().nativeElement;
-      this.session.attach(hostElement, { quality: 'high', devTools: this.devTools });
+      this.session.attach(hostElement, {
+        quality: 'high',
+        devTools: this.devTools,
+        initialStageId: this.stageId,
+      });
       this.observeResize(hostElement, destroyRef);
     });
 
     destroyRef.onDestroy(() => this.session.detach());
+  }
+
+  protected applyTuning(tuning: MovementTuning): void {
+    this.session.send({ type: 'applyTuning', tuning });
   }
 
   private observeResize(hostElement: HTMLElement, destroyRef: DestroyRef): void {

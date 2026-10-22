@@ -1,4 +1,12 @@
-import { IGNORED_GAP_MS, LONG_FRAME_MS } from '../configuration/performance.config';
+import {
+  FRAME_STATS_WINDOW_SECONDS,
+  IGNORED_GAP_MS,
+  LONG_FRAME_MS,
+} from '../configuration/performance.config';
+
+export function rollingWindowCapacity(refreshHz: number): number {
+  return Math.ceil(FRAME_STATS_WINDOW_SECONDS * refreshHz);
+}
 
 export class FrameStats {
   private readonly samples: Float64Array;

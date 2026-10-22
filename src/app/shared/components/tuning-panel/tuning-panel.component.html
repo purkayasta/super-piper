@@ -1,0 +1,76 @@
+@if (open()) {
+  <section class="tuning-panel" aria-label="Movement tuning">
+    <header class="tuning-panel__header">
+      <h2>Tuning</h2>
+      <div class="tuning-panel__actions">
+        <button
+          type="button"
+          data-action="reset"
+          (mousedown)="$event.preventDefault()"
+          (click)="reset()"
+        >
+          Reset to defaults
+        </button>
+        <button
+          type="button"
+          data-action="copy"
+          (mousedown)="$event.preventDefault()"
+          (click)="copy()"
+        >
+          Copy as config
+        </button>
+      </div>
+      @if (message()) {
+        <p class="tuning-panel__message" role="status">{{ message() }}</p>
+      }
+    </header>
+    @for (field of scalarFields; track field.key) {
+      <div class="tuning-panel__row">
+        <label [attr.for]="'num-' + field.key">{{ field.key }}</label>
+        <input
+          type="number"
+          step="any"
+          min="0"
+          [id]="'num-' + field.key"
+          [attr.data-field]="field.key"
+          [value]="tuning()[field.key]"
+          (input)="editScalar(field.key, $event)"
+          (keydown.enter)="blurTarget($event)"
+          (keydown.escape)="blurTarget($event)"
+        />
+        <input
+          type="range"
+          step="any"
+          min="0"
+          [max]="field.max"
+          [attr.data-field]="field.key"
+          [attr.aria-label]="field.key + ' slider'"
+          [value]="tuning()[field.key]"
+          (input)="editScalar(field.key, $event)"
+          (change)="blurTarget($event)"
+        />
+      </div>
+    }
+    @for (tierIndex of tierIndexes; track tierIndex) {
+      <details class="tuning-panel__tier">
+        <summary>jumpTiers[{{ tierIndex }}]</summary>
+        @for (tierKey of tierKeys; track tierKey) {
+          <div class="tuning-panel__row">
+            <label [attr.for]="'num-tier-' + tierIndex + '-' + tierKey">{{ tierKey }}</label>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              [id]="'num-tier-' + tierIndex + '-' + tierKey"
+              [attr.data-field]="'jumpTiers.' + tierIndex + '.' + tierKey"
+              [value]="tuning().jumpTiers[tierIndex][tierKey]"
+              (input)="editTier(tierIndex, tierKey, $event)"
+              (keydown.enter)="blurTarget($event)"
+              (keydown.escape)="blurTarget($event)"
+            />
+          </div>
+        }
+      </details>
+    }
+  </section>
+}

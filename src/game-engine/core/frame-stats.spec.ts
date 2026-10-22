@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FrameStats } from './frame-stats';
+import { FrameStats, rollingWindowCapacity } from './frame-stats';
 
 describe('FrameStats', () => {
   it('computes average, p95 and long frames over 1..100', () => {
@@ -41,5 +41,17 @@ describe('FrameStats', () => {
     const stats = new FrameStats(10);
     stats.push(20);
     expect(stats.fps).toBeCloseTo(50);
+  });
+
+  it('sizes the rolling window to two seconds of frames', () => {
+    expect(rollingWindowCapacity(144)).toBe(288);
+    expect(rollingWindowCapacity(59.94)).toBe(120);
+  });
+
+  it('forgets frames older than two seconds at 144 Hz', () => {
+    const stats = new FrameStats(rollingWindowCapacity(144));
+    for (let i = 0; i < 288; i++) stats.push(40);
+    for (let i = 0; i < 288; i++) stats.push(10);
+    expect(stats.average).toBeCloseTo(10);
   });
 });

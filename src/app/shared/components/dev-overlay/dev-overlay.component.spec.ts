@@ -7,6 +7,7 @@ const sample: PerfSample = {
   avgFrameMs: 16.6833,
   p95FrameMs: 17.2,
   longFrames: 1,
+  offStepFrames: 2,
   refreshHz: 144,
   physicsHz: 144,
   activeBodies: 5,
@@ -22,13 +23,14 @@ describe('DevOverlayComponent', () => {
 
   it('shows a dash while there is no sample', async () => {
     const { element } = await render(null);
-    expect(element.textContent).toContain('—');
+    const values = Array.from(element.querySelectorAll('dd'), (cell) => cell.textContent?.trim());
+    expect(values).toEqual(Array(8).fill('—'));
   });
 
   it('shows fps to one decimal, frame times to two and counts as integers', async () => {
     const { element } = await render(sample);
     const values = Array.from(element.querySelectorAll('dd'), (cell) => cell.textContent?.trim());
-    expect(values).toEqual(['59.9', '16.68', '17.20', '1', '144', '144', '5']);
+    expect(values).toEqual(['59.9', '16.68', '17.20', '1', '2', '144', '144', '5']);
   });
 
   it('toggles visibility with the backtick key', async () => {

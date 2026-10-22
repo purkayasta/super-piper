@@ -14,7 +14,7 @@ Build an original browser platformer that **plays and feels like Super Mario Bro
 
 The owner's two top priorities:
 
-1. **A rock-solid 60fps.** Smooth, stutter-free and measured, not assumed.
+1. **A rock-solid frame rate: 60fps at minimum, and the display's full refresh rate (120/144Hz and up) where available.** Smooth, stutter-free and measured, not assumed.
 2. **Excellent look and feel.** The controls must feel like Mario, and the presentation must be beautiful.
 
 Success means someone who grew up on SMB1 picks it up and says "this feels right" within 30 seconds, then notices how good it looks. It should run smoothly on a normal laptop browser.

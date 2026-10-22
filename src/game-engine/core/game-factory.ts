@@ -1,9 +1,10 @@
 import type { GameBridge } from './game-bridge';
-import type { QualityLevel } from './game-events';
+import type { QualityLevel, StageId } from './game-events';
 
 export interface GameOptions {
   quality: QualityLevel;
   devTools: boolean;
+  initialStageId: StageId;
 }
 
 export interface GameHandle {

@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { vi } from 'vitest';
 import type { GameBridge } from '../../../game-engine/core/game-bridge';
 import { GameSessionService } from '../../core/services/game-session.service';
 import { GAME_FACTORY, type GameHandle } from '../../core/game-factory.token';
+import { DEV_TOOLS_ENABLED } from '../../core/utilities/dev-tools';
 import { GameShellComponent } from './game-shell.component';
 
 class FakeResolutionQuery extends EventTarget {
@@ -47,9 +49,10 @@ describe('GameShellComponent', () => {
     TestBed.configureTestingModule({
       imports: [GameShellComponent],
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: 'play/:stageId', component: GameShellComponent }]),
         GameSessionService,
         { provide: GAME_FACTORY, useValue: factory },
+        { provide: DEV_TOOLS_ENABLED, useValue: false },
       ],
     });
   });
@@ -99,5 +102,34 @@ describe('GameShellComponent', () => {
     resolutionQueries[0].dispatchEvent(new Event('change'));
 
     expect(handle.resize).not.toHaveBeenCalled();
+  });
+
+  it('starts the game on the stage named in the route', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/play/test-room', GameShellComponent);
+    await harness.fixture.whenStable();
+
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(factory.mock.calls[0][2]).toEqual({
+      quality: 'high',
+      devTools: false,
+      initialStageId: 'test-room',
+    });
+  });
+
+  it('shows the dev overlay and passes devTools only when the flag is on', async () => {
+    TestBed.overrideProvider(DEV_TOOLS_ENABLED, { useValue: true });
+    const fixture = await renderShell();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('app-dev-overlay')).not.toBeNull();
+    expect(factory.mock.calls[0][2]).toMatchObject({ devTools: true });
+  });
+
+  it('hides the dev overlay when the flag is off', async () => {
+    const fixture = await renderShell();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('app-dev-overlay')).toBeNull();
   });
 });
