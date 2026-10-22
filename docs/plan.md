@@ -9,7 +9,7 @@ Each phase has its own detailed task plan in [`plans/`](plans/). Detailed plans 
 | # | Phase | Detailed plan | Status |
 |---|---|---|---|
 | 1 | Skeleton | [`plans/phase-1-skeleton.md`](plans/phase-1-skeleton.md) | Done |
-| 2 | Pip's feel | [`plans/phase-2-feel.md`](plans/phase-2-feel.md) | In progress |
+| 2 | Pip's feel | [`plans/phase-2-feel.md`](plans/phase-2-feel.md) | In review |
 | 3 | Art pipeline + World 1-1 | written after Phase 2 review | — |
 | 4 | Enemies, power-ups, rules | written after Phase 3 review | — |
 | 5 | Sound and music | written after Phase 4 review | — |
@@ -69,6 +69,17 @@ Initial bundle 228.9 kB (62.7 kB transfer). Phaser is in the lazy `game-shell-ro
 - Hitting a ceiling corner slides Pip past it instead of stopping dead.
 - The camera never scrolls back.
 - Use the tuning panel until it **feels like Mario**, then "Copy as config". Those values become the defaults.
+- After moving the window to a monitor with a different refresh rate, reload the page. The detected rate is cached per page session.
+
+**Measured (2026-10-22, dev build, headed Chromium, RTX 3050 Laptop, 60Hz display, 60s running right in the test room):**
+
+| FPS | avg ms | p95 ms | Long frames | Off-step frames | Refresh / physics Hz |
+|---|---|---|---|---|---|
+| 59.9 | 16.68 | 16.80 | 0 | 6 (about 1 per 10s) | 60 / 60 |
+
+Phaser chunk: 1.11 MB raw, 243 kB transfer (arcade-only build). Initial bundle: 235 kB. Heap growth over 20 Play/Menu cycles: 1.66 MB. 174 unit tests and 8 e2e tests pass.
+
+**Known item for the review:** each off-step frame is a frame where physics ran 0 or 2 steps. That happens because the fixed step at the snapped rate drifts against the display's real refresh, and it can show up as a rare micro-hitch. The planned fix is delta snapping: quantise the delta Arcade sees to whole steps and carry the remainder. It is not in yet. 120/144Hz has not been measured.
 
 ## Phase 3: Art pipeline + World 1-1
 **Builds:**

@@ -154,13 +154,19 @@ describe('TuningPanelComponent', () => {
     expect(emitted.at(-1)?.jumpTiers[0].launchSpeed).toBe(0);
   });
 
-  it('floors maxStepSeconds at 0.001', async () => {
+  it('floors jump-tier gravities at 1 so Pip can always land', async () => {
     const { fixture, element, emitted } = await render();
     await pressF2(fixture);
-    await typeValue(fixture, numberInput(element, 'maxStepSeconds'), '0');
-    expect(emitted.at(-1)?.maxStepSeconds).toBe(0.001);
-    await typeValue(fixture, numberInput(element, 'maxStepSeconds'), '-2');
-    expect(emitted.at(-1)?.maxStepSeconds).toBe(0.001);
+    await typeValue(fixture, numberInput(element, 'jumpTiers.0.fallGravity'), '0');
+    expect(emitted.at(-1)?.jumpTiers[0].fallGravity).toBe(1);
+    await typeValue(fixture, numberInput(element, 'jumpTiers.1.holdGravity'), '-2');
+    expect(emitted.at(-1)?.jumpTiers[1].holdGravity).toBe(1);
+  });
+
+  it('does not offer maxStepSeconds, which only affects the test harness', async () => {
+    const { fixture, element } = await render();
+    await pressF2(fixture);
+    expect(numberInput(element, 'maxStepSeconds')).toBeNull();
   });
 
   it('blurs a number input on Enter and Escape', async () => {

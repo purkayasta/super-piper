@@ -16,7 +16,8 @@ interface ScalarField {
 }
 
 const SLIDER_MAX_FACTOR = 3;
-const MIN_STEP_SECONDS = 0.001;
+const MIN_GRAVITY = 1;
+const GRAVITY_KEYS: ReadonlySet<string> = new Set(['holdGravity', 'fallGravity']);
 
 const SCALAR_KEYS: readonly ScalarKey[] = [
   'walkMaxSpeed',
@@ -30,7 +31,6 @@ const SCALAR_KEYS: readonly ScalarKey[] = [
   'coyoteMs',
   'jumpBufferMs',
   'cornerNudgePx',
-  'maxStepSeconds',
   'cameraLeadFraction',
 ];
 
@@ -121,6 +121,6 @@ export class TuningPanelComponent {
   private readNumber(event: Event, key: string): number | null {
     const value = (event.target as HTMLInputElement).valueAsNumber;
     if (!Number.isFinite(value)) return null;
-    return Math.max(value, key === 'maxStepSeconds' ? MIN_STEP_SECONDS : 0);
+    return Math.max(value, GRAVITY_KEYS.has(key) ? MIN_GRAVITY : 0);
   }
 }

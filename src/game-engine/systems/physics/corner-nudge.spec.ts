@@ -21,6 +21,14 @@ describe('cornerNudge', () => {
     expect(cornerNudge({ ...box, x: 23 }, -5, solidAt([2, 0]), 16, 4)).toBe(-3);
   });
 
+  it('nudges left for a sub-pixel right-corner overlap', () => {
+    expect(cornerNudge({ ...box, x: 20.3 }, -5, solidAt([2, 0]), 16, 4)).toBeCloseTo(-0.3, 9);
+  });
+
+  it('nudges right for a sub-pixel left-corner overlap', () => {
+    expect(cornerNudge({ ...box, x: 31.7 }, -5, solidAt([1, 0]), 16, 4)).toBeCloseTo(0.3, 9);
+  });
+
   it('does not nudge when both corners are solid', () => {
     expect(cornerNudge(box, -5, solidAt([1, 0], [2, 0]), 16, 4)).toBe(0);
   });

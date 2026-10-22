@@ -19,7 +19,7 @@ export function cornerNudge(
   const left = box.x;
   const right = box.x + box.width;
   const leftCol = Math.floor(left / tileSize);
-  const rightCol = Math.floor((right - 1) / tileSize);
+  const rightCol = Math.ceil(right / tileSize) - 1;
   const leftSolid = isSolidTile(leftCol, headRow);
   const rightSolid = isSolidTile(rightCol, headRow);
   if (leftSolid === rightSolid) {
