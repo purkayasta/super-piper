@@ -21,7 +21,7 @@ const SQUARE_TEXTURE = 'sandbox-square';
 export class SandboxScene extends Phaser.Scene {
   private bridge!: GameBridge;
   private options!: GameOptions;
-  private readonly frameStats = new FrameStats(FRAME_STATS_CAPACITY);
+  private frameStats!: FrameStats;
   private sinceLastSampleMs = 0;
   private refreshHz = DEFAULT_REFRESH_HZ;
 
@@ -33,13 +33,13 @@ export class SandboxScene extends Phaser.Scene {
     this.bridge = this.registry.get('bridge');
     this.options = this.registry.get('options');
     this.refreshHz = this.registry.get('refreshHz') ?? DEFAULT_REFRESH_HZ;
+    this.frameStats = new FrameStats(FRAME_STATS_CAPACITY);
+    this.sinceLastSampleMs = 0;
 
     this.physics.world.setFPS(this.refreshHz);
     this.physics.world.setBounds(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-    const camera = this.cameras.main;
-    camera.setOrigin(0, 0);
-    camera.setZoom(this.registry.get('zoom'));
+    this.fitCameraToLogicalView(this.registry.get('zoom'));
 
     this.createTextures();
     this.add.image(0, 0, GROUND_TEXTURE).setOrigin(0, 0);
@@ -55,7 +55,7 @@ export class SandboxScene extends Phaser.Scene {
       }
     });
     const applyZoom = (_parent: unknown, zoom: number): void => {
-      camera.setZoom(zoom);
+      this.fitCameraToLogicalView(zoom);
     };
     this.registry.events.on('changedata-zoom', applyZoom);
     const cleanUp = (): void => {
@@ -81,12 +81,18 @@ export class SandboxScene extends Phaser.Scene {
         fps: this.frameStats.fps,
         avgFrameMs: this.frameStats.average,
         p95FrameMs: this.frameStats.p95,
-        longFrames: this.frameStats.longFrames,
+        longFrames: this.frameStats.totalLongFrames,
         refreshHz: this.refreshHz,
         physicsHz: this.physics.world.fps,
         activeBodies: this.physics.world.bodies.size,
       },
     });
+  }
+
+  private fitCameraToLogicalView(zoom: number): void {
+    const camera = this.cameras.main;
+    camera.setZoom(zoom);
+    camera.centerOn(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2);
   }
 
   private createTextures(): void {

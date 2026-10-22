@@ -8,7 +8,7 @@ export interface GameOptions {
 
 export interface GameHandle {
   destroy(): void;
-  resize(viewportCssHeight: number, devicePixelRatio: number): void;
+  resize(viewportCssWidth: number, viewportCssHeight: number, devicePixelRatio: number): void;
 }
 
 export type GameFactory = (

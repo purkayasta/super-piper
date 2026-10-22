@@ -3,8 +3,8 @@ import type { PerfSample } from '../../../../game-engine/core/game-events';
 import { DevOverlayComponent } from './dev-overlay.component';
 
 const sample: PerfSample = {
-  fps: 60,
-  avgFrameMs: 16.6,
+  fps: 59.9412,
+  avgFrameMs: 16.6833,
   p95FrameMs: 17.2,
   longFrames: 1,
   refreshHz: 144,
@@ -25,10 +25,10 @@ describe('DevOverlayComponent', () => {
     expect(element.textContent).toContain('—');
   });
 
-  it('shows the sample numbers', async () => {
+  it('shows fps to one decimal, frame times to two and counts as integers', async () => {
     const { element } = await render(sample);
-    expect(element.textContent).toContain('60');
-    expect(element.textContent).toContain('144');
+    const values = Array.from(element.querySelectorAll('dd'), (cell) => cell.textContent?.trim());
+    expect(values).toEqual(['59.9', '16.68', '17.20', '1', '144', '144', '5']);
   });
 
   it('toggles visibility with the backtick key', async () => {

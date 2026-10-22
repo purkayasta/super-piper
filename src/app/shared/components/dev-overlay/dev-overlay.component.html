@@ -2,11 +2,11 @@
   <dl class="dev-overlay">
     @let current = sample();
     <dt>FPS</dt>
-    <dd>{{ current ? current.fps : '—' }}</dd>
+    <dd>{{ current ? (current.fps | number: '1.1-1') : '—' }}</dd>
     <dt>avg ms</dt>
-    <dd>{{ current ? current.avgFrameMs.toFixed(1) : '—' }}</dd>
+    <dd>{{ current ? (current.avgFrameMs | number: '1.2-2') : '—' }}</dd>
     <dt>p95 ms</dt>
-    <dd>{{ current ? current.p95FrameMs.toFixed(1) : '—' }}</dd>
+    <dd>{{ current ? (current.p95FrameMs | number: '1.2-2') : '—' }}</dd>
     <dt>long frames</dt>
     <dd>{{ current ? current.longFrames : '—' }}</dd>
     <dt>refresh Hz</dt>

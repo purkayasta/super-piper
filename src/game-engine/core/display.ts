@@ -1,5 +1,6 @@
 import {
   LOGICAL_HEIGHT,
+  LOGICAL_WIDTH,
   SUPPORTED_REFRESH_RATES,
   ZOOM_CAP,
 } from '../configuration/performance.config';
@@ -8,11 +9,13 @@ import type { QualityLevel } from './game-events';
 const DEFAULT_REFRESH_RATE = 60;
 
 export function computeZoom(
+  viewportCssWidth: number,
   viewportCssHeight: number,
   devicePixelRatio: number,
   quality: QualityLevel,
 ): number {
-  const fitting = Math.ceil((viewportCssHeight * devicePixelRatio) / LOGICAL_HEIGHT);
+  const cssScale = Math.min(viewportCssHeight / LOGICAL_HEIGHT, viewportCssWidth / LOGICAL_WIDTH);
+  const fitting = Math.ceil(cssScale * devicePixelRatio);
   return Math.min(Math.max(fitting, 1), ZOOM_CAP[quality]);
 }
 

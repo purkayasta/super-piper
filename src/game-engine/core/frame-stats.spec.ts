@@ -23,6 +23,13 @@ describe('FrameStats', () => {
     expect(stats.average).toBeCloseTo(16.67);
   });
 
+  it('counts evicted long frames in the session total but not the window', () => {
+    const stats = new FrameStats(3);
+    [60, 900, 10, 10, 10].forEach((value) => stats.push(value));
+    expect(stats.longFrames).toBe(0);
+    expect(stats.totalLongFrames).toBe(1);
+  });
+
   it('reports zero when empty', () => {
     const stats = new FrameStats(240);
     expect(stats.fps).toBe(0);

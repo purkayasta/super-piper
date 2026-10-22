@@ -39,8 +39,8 @@ export class GameSessionService {
     this.session?.bridge.send(command);
   }
 
-  resize(viewportCssHeight: number, devicePixelRatio: number): void {
-    this.session?.handle.resize(viewportCssHeight, devicePixelRatio);
+  resize(viewportCssWidth: number, viewportCssHeight: number, devicePixelRatio: number): void {
+    this.session?.handle.resize(viewportCssWidth, viewportCssHeight, devicePixelRatio);
   }
 
   detach(): void {

@@ -8,6 +8,7 @@ import { createGameConfig } from './game-config';
 
 export const createGame: GameFactory = (parent, bridge, options) => {
   const initialZoom = computeZoom(
+    parent.clientWidth || window.innerWidth,
     parent.clientHeight || window.innerHeight,
     window.devicePixelRatio || 1,
     options.quality,
@@ -19,16 +20,25 @@ export const createGame: GameFactory = (parent, bridge, options) => {
       preBootGame.registry.set('options', options);
       preBootGame.registry.set('zoom', initialZoom);
     },
+    postBoot: (bootedGame) => {
+      // pixelArt makes Phaser force nearest-neighbour on the canvas element; the fractional FIT to the window should be smooth.
+      bootedGame.canvas.style.imageRendering = 'auto';
+    },
   };
   const game = new Phaser.Game(config);
 
   return {
     destroy: () => game.destroy(true),
-    resize: (viewportCssHeight, devicePixelRatio) => {
-      const zoom = computeZoom(viewportCssHeight, devicePixelRatio, options.quality);
+    resize: (viewportCssWidth, viewportCssHeight, devicePixelRatio) => {
+      const zoom = computeZoom(
+        viewportCssWidth,
+        viewportCssHeight,
+        devicePixelRatio,
+        options.quality,
+      );
       if (zoom === game.registry.get('zoom')) return;
-      game.registry.set('zoom', zoom);
       game.scale.resize(LOGICAL_WIDTH * zoom, LOGICAL_HEIGHT * zoom);
+      game.registry.set('zoom', zoom);
     },
   };
 };

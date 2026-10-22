@@ -1,7 +1,9 @@
+import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
 import type { PerfSample } from '../../../../game-engine/core/game-events';
 
 @Component({
+  imports: [DecimalPipe],
   selector: 'app-dev-overlay',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.code.Backquote)': 'toggle()' },

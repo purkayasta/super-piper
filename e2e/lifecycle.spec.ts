@@ -81,3 +81,45 @@ test('resize recomputes canvas size', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await expect(page.locator('canvas')).toHaveAttribute('width', '2160');
 });
+
+test('dpi change recomputes canvas size', async ({ page }) => {
+  await page.addInitScript(() => {
+    const recorded: { media: string; query: MediaQueryList }[] = [];
+    (window as unknown as { recordedMediaQueries: typeof recorded }).recordedMediaQueries =
+      recorded;
+    const realMatchMedia = window.matchMedia.bind(window);
+    window.matchMedia = (media: string) => {
+      const query = realMatchMedia(media);
+      recorded.push({ media, query });
+      return query;
+    };
+  });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/#/play/sandbox');
+  await expect(page.locator('canvas')).toHaveAttribute('width', '1296');
+  const session = await page.context().newCDPSession(page);
+  await session.send('Emulation.setDeviceMetricsOverride', {
+    width: 1280,
+    height: 720,
+    deviceScaleFactor: 2,
+    mobile: false,
+  });
+  await expect.poll(() => page.evaluate(() => window.devicePixelRatio)).toBe(2);
+  // CDP's deviceScaleFactor override updates matches but never dispatches the change event.
+  const dispatched = await page.evaluate(() => {
+    const recorded = (
+      window as unknown as { recordedMediaQueries: { media: string; query: MediaQueryList }[] }
+    ).recordedMediaQueries;
+    const resolutionQueries = recorded.filter(({ media }) => media.startsWith('(resolution:'));
+    resolutionQueries.forEach(({ query }) => query.dispatchEvent(new Event('change')));
+    return resolutionQueries.map(({ media }) => media);
+  });
+  expect(dispatched).toEqual(['(resolution: 1dppx)']);
+  await expect(page.locator('canvas')).toHaveAttribute('width', '2592');
+  await session.detach();
+});
+
+test('canvas uses smooth browser scaling for the final fit', async ({ page }) => {
+  await page.goto('/#/play/sandbox');
+  await expect(page.locator('canvas')).toHaveCSS('image-rendering', 'auto');
+});

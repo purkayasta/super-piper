@@ -5,6 +5,7 @@ export class FrameStats {
   private readonly scratch: Float64Array;
   private writeIndex = 0;
   private count = 0;
+  private sessionLongFrames = 0;
 
   constructor(private readonly capacity: number) {
     this.samples = new Float64Array(capacity);
@@ -13,6 +14,7 @@ export class FrameStats {
 
   push(frameMs: number): void {
     if (frameMs > IGNORED_GAP_MS) return;
+    if (frameMs > LONG_FRAME_MS) this.sessionLongFrames++;
     this.samples[this.writeIndex] = frameMs;
     this.writeIndex = (this.writeIndex + 1) % this.capacity;
     if (this.count < this.capacity) this.count++;
@@ -39,6 +41,10 @@ export class FrameStats {
       if (this.samples[i] > LONG_FRAME_MS) longFrames++;
     }
     return longFrames;
+  }
+
+  get totalLongFrames(): number {
+    return this.sessionLongFrames;
   }
 
   get fps(): number {

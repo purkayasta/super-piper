@@ -76,14 +76,14 @@ describe('GameSessionService', () => {
     service.attach(host, options);
     bridge.onCommand((command) => received.push(command));
     service.send({ type: 'pause' });
-    service.resize(480, 2);
+    service.resize(864, 480, 2);
     expect(received).toEqual([{ type: 'pause' }]);
-    expect(handle.resize).toHaveBeenCalledWith(480, 2);
+    expect(handle.resize).toHaveBeenCalledWith(864, 480, 2);
   });
 
   it('ignores send and resize when not attached', () => {
     expect(() => service.send({ type: 'pause' })).not.toThrow();
-    expect(() => service.resize(480, 1)).not.toThrow();
+    expect(() => service.resize(864, 480, 1)).not.toThrow();
   });
 
   it('destroys the game and disposes the bridge on detach, safely twice', () => {

@@ -6,6 +6,8 @@ function repeat(value: number, count: number): number[] {
 }
 
 describe('computeZoom', () => {
+  const HEIGHT_GOVERNED_WIDTH = 10000;
+
   it.each([
     [720, 1, 'high', 3],
     [1080, 1, 'high', 5],
@@ -15,8 +17,18 @@ describe('computeZoom', () => {
     [720, 2, 'low', 3],
     [200, 1, 'high', 1],
   ] as const)('height %i dpr %i quality %s gives %i', (height, dpr, quality, expected) => {
-    expect(computeZoom(height, dpr, quality)).toBe(expected);
+    expect(computeZoom(HEIGHT_GOVERNED_WIDTH, height, dpr, quality)).toBe(expected);
   });
+
+  it.each([
+    [960, 1080, 1, 'high', 3],
+    [1920, 1200, 1, 'high', 5],
+  ] as const)(
+    'width %i height %i dpr %i quality %s gives %i',
+    (width, height, dpr, quality, expected) => {
+      expect(computeZoom(width, height, dpr, quality)).toBe(expected);
+    },
+  );
 });
 
 describe('detectRefreshRate', () => {

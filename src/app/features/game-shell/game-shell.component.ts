@@ -45,17 +45,39 @@ export class GameShellComponent {
     const view = this.document.defaultView;
     if (!view) return;
     let pendingFrame = 0;
-    const observer = new view.ResizeObserver(() => {
+    const scheduleResize = (): void => {
       if (pendingFrame) return;
       pendingFrame = view.requestAnimationFrame(() => {
         pendingFrame = 0;
-        this.session.resize(hostElement.clientHeight, view.devicePixelRatio || 1);
+        this.session.resize(
+          hostElement.clientWidth,
+          hostElement.clientHeight,
+          view.devicePixelRatio || 1,
+        );
       });
-    });
+    };
+    const observer = new view.ResizeObserver(scheduleResize);
     observer.observe(hostElement);
+    const stopWatchingResolution = this.watchResolution(view, scheduleResize);
     destroyRef.onDestroy(() => {
       observer.disconnect();
+      stopWatchingResolution();
       view.cancelAnimationFrame(pendingFrame);
     });
+  }
+
+  private watchResolution(view: Window, onChange: () => void): () => void {
+    let resolutionQuery: MediaQueryList | undefined;
+    const handleChange = (): void => {
+      listenAtCurrentResolution();
+      onChange();
+    };
+    const listenAtCurrentResolution = (): void => {
+      resolutionQuery?.removeEventListener('change', handleChange);
+      resolutionQuery = view.matchMedia(`(resolution: ${view.devicePixelRatio || 1}dppx)`);
+      resolutionQuery.addEventListener('change', handleChange);
+    };
+    listenAtCurrentResolution();
+    return () => resolutionQuery?.removeEventListener('change', handleChange);
   }
 }
