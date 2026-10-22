@@ -13,6 +13,7 @@ export interface PerfSample {
   avgFrameMs: number;
   p95FrameMs: number;
   longFrames: number;
+  offStepFrames: number;
   refreshHz: number;
   physicsHz: number;
   activeBodies: number;

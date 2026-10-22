@@ -12,6 +12,7 @@ const sample: PerfSample = {
   avgFrameMs: 16.6,
   p95FrameMs: 17,
   longFrames: 0,
+  offStepFrames: 0,
   refreshHz: 60,
   physicsHz: 60,
   activeBodies: 3,

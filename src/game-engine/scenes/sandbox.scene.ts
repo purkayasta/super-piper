@@ -1,20 +1,22 @@
 import Phaser from 'phaser';
 import {
-  FRAME_STATS_CAPACITY,
   LOGICAL_HEIGHT,
   LOGICAL_WIDTH,
   PERF_SAMPLE_INTERVAL_MS,
 } from '../configuration/performance.config';
-import { FrameStats } from '../core/frame-stats';
+import { FrameStats, rollingWindowCapacity } from '../core/frame-stats';
 import type { GameBridge } from '../core/game-bridge';
 import type { GameOptions } from '../core/game-factory';
+import { readBridge, readOptions, readZoom, registryChangeEvent } from '../core/registry-keys';
+import { StepStats } from '../core/step-stats';
+import { applyDetectedPhysicsRate, recordPhysicsStepFrame } from './physics-rate';
 
 const TILE_SIZE = 16;
 const TILE_COLUMNS = 27;
 const TILE_ROWS = 15;
 const SQUARE_COUNT = 20;
 const SQUARE_SPEED = 90;
-const DEFAULT_REFRESH_HZ = 60;
+const FALLBACK_ZOOM = 1;
 const GROUND_TEXTURE = 'sandbox-ground';
 const SQUARE_TEXTURE = 'sandbox-square';
 
@@ -23,23 +25,26 @@ export class SandboxScene extends Phaser.Scene {
   private options!: GameOptions;
   private frameStats!: FrameStats;
   private sinceLastSampleMs = 0;
-  private refreshHz = DEFAULT_REFRESH_HZ;
+  private skipNextStepSample = true;
+  private stepStats!: StepStats;
+  private refreshHz = 0;
 
   constructor() {
     super('SandboxScene');
   }
 
   create(): void {
-    this.bridge = this.registry.get('bridge');
-    this.options = this.registry.get('options');
-    this.refreshHz = this.registry.get('refreshHz') ?? DEFAULT_REFRESH_HZ;
-    this.frameStats = new FrameStats(FRAME_STATS_CAPACITY);
+    this.bridge = readBridge(this.registry)!;
+    this.options = readOptions(this.registry)!;
+    this.refreshHz = applyDetectedPhysicsRate(this);
+    this.frameStats = new FrameStats(rollingWindowCapacity(this.refreshHz));
+    this.stepStats = new StepStats();
     this.sinceLastSampleMs = 0;
+    this.skipNextStepSample = true;
 
-    this.physics.world.setFPS(this.refreshHz);
     this.physics.world.setBounds(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-    this.fitCameraToLogicalView(this.registry.get('zoom'));
+    this.fitCameraToLogicalView(readZoom(this.registry) ?? FALLBACK_ZOOM);
 
     this.createTextures();
     this.add.image(0, 0, GROUND_TEXTURE).setOrigin(0, 0);
@@ -57,10 +62,10 @@ export class SandboxScene extends Phaser.Scene {
     const applyZoom = (_parent: unknown, zoom: number): void => {
       this.fitCameraToLogicalView(zoom);
     };
-    this.registry.events.on('changedata-zoom', applyZoom);
+    this.registry.events.on(registryChangeEvent('zoom'), applyZoom);
     const cleanUp = (): void => {
       unsubscribe();
-      this.registry.events.off('changedata-zoom', applyZoom);
+      this.registry.events.off(registryChangeEvent('zoom'), applyZoom);
     };
     this.events.once('shutdown', cleanUp);
     this.events.once('destroy', cleanUp);
@@ -72,6 +77,7 @@ export class SandboxScene extends Phaser.Scene {
     if (!this.options.devTools) return;
     const delta = this.game.loop.rawDelta;
     this.frameStats.push(delta);
+    this.recordSteps(delta);
     this.sinceLastSampleMs += delta;
     if (this.sinceLastSampleMs < PERF_SAMPLE_INTERVAL_MS) return;
     this.sinceLastSampleMs = 0;
@@ -82,11 +88,20 @@ export class SandboxScene extends Phaser.Scene {
         avgFrameMs: this.frameStats.average,
         p95FrameMs: this.frameStats.p95,
         longFrames: this.frameStats.totalLongFrames,
+        offStepFrames: this.stepStats.offStepFrames,
         refreshHz: this.refreshHz,
         physicsHz: this.physics.world.fps,
         activeBodies: this.physics.world.bodies.size,
       },
     });
+  }
+
+  private recordSteps(frameMs: number): void {
+    if (this.skipNextStepSample) {
+      this.skipNextStepSample = false;
+      return;
+    }
+    recordPhysicsStepFrame(this, this.stepStats, frameMs);
   }
 
   private fitCameraToLogicalView(zoom: number): void {
