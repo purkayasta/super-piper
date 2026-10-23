@@ -57,4 +57,28 @@ describe('1-1', () => {
     expect(compiled.coins.length).toBeGreaterThan(20);
     expect(compiled.tubes.length).toBeGreaterThan(3);
   });
+
+  it('meets every enemy kind and hides every kind of block content', () => {
+    const compiled = compileLevel(level);
+    const enemyKinds = new Set(compiled.enemies.map((spawn) => spawn.kind));
+    expect([...enemyKinds].sort()).toEqual(['flapjack', 'shellback', 'snapvine', 'thornbug']);
+    const items = new Set(compiled.blockItems.map((cell) => cell.item));
+    expect([...items].sort()).toEqual(['multi-coin', 'one-up', 'power', 'star']);
+    expect(compiled.hiddenBlocks).toHaveLength(1);
+  });
+
+  it('has one checkpoint about halfway to the goal', () => {
+    const compiled = compileLevel(level);
+    const checkpoint = compiled.checkpoint!;
+    expect(checkpoint.column / compiled.goal.column).toBeGreaterThan(0.4);
+    expect(checkpoint.column / compiled.goal.column).toBeLessThan(0.6);
+  });
+
+  it('keeps every enemy spawn on an empty cell so none starts inside a block', () => {
+    const compiled = compileLevel(level);
+    for (const spawn of compiled.enemies) {
+      if (spawn.kind === 'snapvine') continue;
+      expect(compiled.collision[spawn.row][spawn.column], `${spawn.kind}@${spawn.column}`).toBe(-1);
+    }
+  });
 });

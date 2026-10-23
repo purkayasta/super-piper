@@ -21,11 +21,14 @@ export interface PerfSample {
   activeBodies: number;
 }
 
+export type PowerForm = 'small' | 'big' | 'spark';
+
 export interface HudState {
   score: number;
   coins: number;
   timeLeft: number;
   lives: number;
+  power: PowerForm;
 }
 
 export interface StageResult {
@@ -50,6 +53,9 @@ export type GameEvent =
   | { type: 'loadComplete'; stageId: StageId; stageLabel: string }
   | { type: 'hudChanged'; hud: HudState }
   | { type: 'stageComplete'; result: StageResult }
+  | { type: 'checkpoint'; stageId: StageId; column: number }
+  | { type: 'playerDied'; stageId: StageId; livesLeft: number }
+  | { type: 'gameOver'; result: StageResult }
   | { type: 'paused' }
   | { type: 'resumed' }
   | { type: 'perfSample'; sample: PerfSample }

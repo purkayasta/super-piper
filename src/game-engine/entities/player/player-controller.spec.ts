@@ -306,4 +306,42 @@ describe('PlayerController', () => {
     stepMany(controller, 5, actions({ jump: true }));
     expect(controller.vy).toBe(0);
   });
+
+  it('bounces higher off a stomp while jump is held', () => {
+    const bounceApex = (holdJump: boolean): number => {
+      const controller = new PlayerController(DEFAULT_MOVEMENT);
+      stepMany(controller, 10, actions(), AIR);
+      controller.bounce(210);
+      expect(controller.mode).toBe('air');
+      let y = 0;
+      let apex = 0;
+      for (let i = 0; i < HZ; i++) {
+        controller.step(actions({ jump: holdJump }), AIR, DT);
+        y += controller.bodyVy * DT;
+        apex = Math.min(apex, y);
+      }
+      return -apex;
+    };
+    expect(bounceApex(true)).toBeGreaterThan(bounceApex(false) * 2);
+  });
+
+  it('gives no coyote jump after a bounce', () => {
+    const controller = new PlayerController(DEFAULT_MOVEMENT);
+    controller.bounce(210);
+    stepMany(controller, 20, actions(), AIR);
+    controller.step(actions({ jump: true }), AIR, DT);
+    expect(controller.vy).toBeGreaterThan(0);
+  });
+
+  it('stops rising on a hidden block and falls with heavy gravity', () => {
+    const controller = new PlayerController(DEFAULT_MOVEMENT);
+    controller.step(actions(), GROUND, DT);
+    controller.step(actions({ jump: true }), GROUND, DT);
+    expect(controller.vy).toBeLessThan(0);
+    controller.stopRising();
+    expect(controller.vy).toBe(0);
+    expect(controller.bodyVy).toBe(0);
+    controller.step(actions({ jump: true }), AIR, DT);
+    expect(controller.vy).toBeCloseTo(DEFAULT_MOVEMENT.jumpTiers[0].fallGravity * DT, 6);
+  });
 });

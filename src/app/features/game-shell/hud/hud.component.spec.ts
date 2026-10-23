@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import type { HudState } from '../../../../game-engine/core/game-events';
 import { HudComponent } from './hud.component';
 
-const STATE: HudState = { score: 1200, coins: 7, timeLeft: 382, lives: 3 };
+const STATE: HudState = { score: 1200, coins: 7, timeLeft: 382, lives: 3, power: 'small' };
 
 describe('HudComponent', () => {
   async function render(hud: HudState | null, stageLabel = '1-1') {

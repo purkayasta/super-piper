@@ -24,6 +24,7 @@ export class GameSessionService {
   private readonly stageLabelState = signal('');
   private readonly hudState = signal<HudState | null>(null);
   private readonly stageResultState = signal<StageResult | null>(null);
+  private readonly gameOverState = signal<StageResult | null>(null);
   private session: ActiveSession | null = null;
 
   readonly loaded = this.loadedState.asReadonly();
@@ -33,6 +34,7 @@ export class GameSessionService {
   readonly stageLabel = this.stageLabelState.asReadonly();
   readonly hud = this.hudState.asReadonly();
   readonly stageResult = this.stageResultState.asReadonly();
+  readonly gameOver = this.gameOverState.asReadonly();
 
   attach(host: HTMLElement, options: GameOptions): void {
     if (this.session) throw new Error('GameSessionService is already attached');
@@ -43,6 +45,7 @@ export class GameSessionService {
     this.stageLabelState.set('');
     this.hudState.set(null);
     this.stageResultState.set(null);
+    this.gameOverState.set(null);
     const bridge = new GameBridge();
     bridge.onEvent((event) => this.applyEvent(event));
     try {
@@ -78,12 +81,16 @@ export class GameSessionService {
         this.loadProgressState.set(1);
         this.stageLabelState.set(event.stageLabel);
         this.loadedState.set(true);
+        this.gameOverState.set(null);
         break;
       case 'hudChanged':
         this.hudState.set(event.hud);
         break;
       case 'stageComplete':
         this.stageResultState.set(event.result);
+        break;
+      case 'gameOver':
+        this.gameOverState.set(event.result);
         break;
       case 'paused':
         this.pausedState.set(true);

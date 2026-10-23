@@ -1,5 +1,10 @@
 import Phaser from 'phaser';
-import { DEFAULT_OUTFIT, GOAL_POLE_TOP_SIZE, ItemFrame } from '../../content/art/atlas-frames';
+import {
+  DEFAULT_OUTFIT,
+  GOAL_POLE_TOP_SIZE,
+  ItemFrame,
+  PIP_FRAME_HEIGHT,
+} from '../../content/art/atlas-frames';
 import {
   GAMEPLAY_ATLAS_ID,
   sceneryResolutionForQuality,
@@ -15,20 +20,51 @@ import { GOAL_SEQUENCE, PICKUP_INSET, STAR_BLOCK_FRAME_MS } from '../configurati
 import { DEFAULT_MOVEMENT, type MovementTuning } from '../configuration/movement.config';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../configuration/performance.config';
 import { TILE_SIZE } from '../configuration/physics.config';
-import { SCORING } from '../configuration/scoring.config';
+import {
+  COMBAT,
+  DEATH_RULES,
+  MULTI_COIN,
+  POWER_RULES,
+  STAR_TINTS,
+} from '../configuration/rules.config';
+import { GOAL_HEIGHT_BANDS, SCORING, TIME_TALLY } from '../configuration/scoring.config';
 import type { GameBridge } from '../core/game-bridge';
-import type { GameCommand } from '../core/game-events';
+import type { GameCommand, StageResult } from '../core/game-events';
 import type { GameOptions } from '../core/game-factory';
 import { readBridge, readOptions, readZoom, registryChangeEvent } from '../core/registry-keys';
+import type { PowerUpKind } from '../entities/power-ups/power-up';
 import { Player } from '../entities/player/player';
+import {
+  StageActors,
+  createPipProbe,
+  type ActorEvents,
+  type PipProbe,
+} from '../systems/actors/stage-actors';
 import { nextPixelViewLeft } from '../systems/camera/forward-camera';
-import { frameAt } from '../systems/effects/effect-curves';
+import { CheckpointTracker } from '../systems/checkpoints/checkpoint';
+import { flickerVisible, frameAt } from '../systems/effects/effect-curves';
 import { DomInput } from '../systems/input/dom-input';
 import { GoalSequence, type GoalLayout } from '../systems/level-completion/goal-sequence';
-import { StageSession } from '../systems/scoring/stage-session';
-import { blockHitOutcome, headRow, pickBumpedColumn } from '../world/block-hits';
+import { PipPower } from '../systems/power/power-state';
+import { DeathSequence, type DeathCause } from '../systems/rules/death-sequence';
+import { TimeTally, goalHeightPoints, grabHeightFraction } from '../systems/scoring/goal-scoring';
+import { ONE_UP } from '../systems/scoring/score-chain';
+import { StageSession, type RunTotals } from '../systems/scoring/stage-session';
+import { BlockContents } from '../world/block-contents';
+import {
+  blockHitOutcome,
+  headRow,
+  hiddenBlockOutcome,
+  pickBumpedColumn,
+  type BlockHitOutcome,
+} from '../world/block-hits';
 import { compileLevel } from '../world/level-compiler';
-import type { CellCoordinate, CompiledLevel, LevelDefinition } from '../world/level-format';
+import type {
+  BlockItem,
+  CellCoordinate,
+  CompiledLevel,
+  LevelDefinition,
+} from '../world/level-format';
 import { PickupField } from '../world/pickup-field';
 import {
   EMPTY_TILE,
@@ -38,9 +74,11 @@ import {
   Tile,
   isStarBlock,
 } from '../world/tile-ids';
+import { ActorSprites } from './level/actor-sprites';
 import { BlockEffects } from './level/block-effects';
 import { COIN_SPIN_ANIMATION, ensureGameplayAnimations } from './level/gameplay-animations';
 import { ParallaxRenderer } from './level/parallax-renderer';
+import { ScorePopups } from './level/score-popups';
 import {
   addTileFrames,
   applySceneryFiltering,
@@ -50,22 +88,35 @@ import {
 import { PerfSampler } from './perf-sampler';
 import { applyDetectedPhysicsRate } from './physics-rate';
 
+export interface LevelSceneData {
+  readonly run?: RunTotals;
+  readonly checkpointReached?: boolean;
+  readonly postmarksCollected?: readonly number[];
+}
+
 const FALLBACK_ZOOM = 1;
 const HALF_TILE = TILE_SIZE / 2;
-const PIP_HALF_HEIGHT = 8;
+const PIP_HALF_HEIGHT = PIP_FRAME_HEIGHT / 2;
 const FLAG_POLE_GAP = 1;
 const MS_PER_SECOND = 1000;
 const MAX_PICKUPS_PER_FRAME = 8;
 const GOAL_TRIGGER_TOLERANCE = 1;
+const PARCEL_HAND_HEIGHT_PX = 10;
+const PARCEL_HAND_REACH_PX = 8;
+
+const FRESH_RUN: RunTotals = { score: 0, coins: 0, lives: SCORING.startingLives };
 
 const Depth = {
   scenery: 0,
   decoration: 10,
   goal: 15,
+  behindTiles: 17,
   tiles: 20,
   pickups: 30,
+  actors: 32,
   effects: 35,
   player: 40,
+  popups: 45,
 } as const;
 
 export class LevelScene extends Phaser.Scene {
@@ -74,23 +125,37 @@ export class LevelScene extends Phaser.Scene {
   private stage!: StageEntry;
   private level!: LevelDefinition;
   private compiled!: CompiledLevel;
+  private runData: LevelSceneData = {};
   private sceneryIds: AssetId[] = [];
   private perfSampler!: PerfSampler;
   private controls!: DomInput;
   private player!: Player;
   private parallax!: ParallaxRenderer;
   private effects!: BlockEffects;
+  private popups!: ScorePopups;
   private session!: StageSession;
   private goal!: GoalSequence;
   private goalLayout!: GoalLayout;
   private goalTriggerX = 0;
+  private goalPoleTopY = 0;
+  private goalBaseTopY = 0;
   private collisionLayer!: Phaser.Tilemaps.TilemapLayer;
   private flag!: Phaser.GameObjects.Image;
+  private checkpointPost: Phaser.GameObjects.Image | null = null;
   private coinSprites: Phaser.GameObjects.Sprite[] = [];
   private postmarkSprites: Phaser.GameObjects.Image[] = [];
   private coins!: PickupField;
   private postmarks!: PickupField;
+  private blocks!: BlockContents;
+  private actors!: StageActors;
+  private actorSprites!: ActorSprites;
+  private power!: PipPower;
+  private death!: DeathSequence;
+  private checkpoint!: CheckpointTracker;
+  private tally!: TimeTally;
+  private probe: PipProbe = createPipProbe();
   private starTiles: Phaser.Tilemaps.Tile[] = [];
+  private collectedPostmarks: number[] = [];
   private readonly collected: number[] = new Array<number>(MAX_PICKUPS_PER_FRAME).fill(0);
   private tuning: MovementTuning = DEFAULT_MOVEMENT;
   private levelWidthPx = 0;
@@ -100,10 +165,18 @@ export class LevelScene extends Phaser.Scene {
   private viewLeft = 0;
   private shimmerElapsedMs = 0;
   private shimmerFrame = 0;
+  private starTintElapsedMs = 0;
+  private blockClockMs = 0;
+  private runHeldLastStep = true;
   private finished = false;
+  private gameIsOver = false;
 
   constructor() {
     super(LEVEL_SCENE_KEY);
+  }
+
+  init(data: LevelSceneData | undefined): void {
+    this.runData = data ?? {};
   }
 
   preload(): void {
@@ -123,12 +196,14 @@ export class LevelScene extends Phaser.Scene {
 
   create(): void {
     const refreshHz = applyDetectedPhysicsRate(this);
-    this.perfSampler = new PerfSampler(this, this.bridge, refreshHz);
     this.tuning = DEFAULT_MOVEMENT;
-    this.viewLeft = 0;
     this.finished = false;
+    this.gameIsOver = false;
     this.shimmerElapsedMs = 0;
     this.shimmerFrame = 0;
+    this.starTintElapsedMs = 0;
+    this.blockClockMs = 0;
+    this.runHeldLastStep = true;
     this.compiled = compileLevel(this.level);
     this.levelWidthPx = this.compiled.width * TILE_SIZE;
     this.levelHeightPx = this.compiled.height * TILE_SIZE;
@@ -144,16 +219,32 @@ export class LevelScene extends Phaser.Scene {
     );
     this.collisionLayer = this.buildTileLayers(tilesetKey);
     ensureGameplayAnimations(this, DEFAULT_OUTFIT);
-    this.buildPickups();
+    this.session = new StageSession(
+      this.level.timeLimit,
+      this.runData.run ?? FRESH_RUN,
+      SCORING,
+      this.runData.postmarksCollected?.length ?? 0,
+    );
+    this.buildPickups(this.runData.postmarksCollected ?? []);
     this.buildGoal();
+    this.buildCheckpoint();
+    this.blocks = new BlockContents(
+      this.compiled.width,
+      this.compiled.height,
+      this.compiled.blockItems,
+      this.compiled.hiddenBlocks,
+      MULTI_COIN,
+    );
     this.effects = new BlockEffects(this, tilesetKey, Depth.effects);
-    this.session = new StageSession(this.level.timeLimit, SCORING.startingLives, SCORING);
+    this.popups = new ScorePopups(this, Depth.popups);
     this.goal = new GoalSequence(GOAL_SEQUENCE);
+    this.power = new PipPower(POWER_RULES);
+    this.death = new DeathSequence(DEATH_RULES);
+    this.tally = new TimeTally(TIME_TALLY);
+    this.probe = createPipProbe();
 
     this.controls = new DomInput();
-    const start = this.compiled.start;
-    this.startX = (start.column + 0.5) * TILE_SIZE;
-    this.startY = (start.row + 1) * TILE_SIZE - PIP_HALF_HEIGHT;
+    this.placeStart();
     this.player = new Player(
       this,
       this.startX,
@@ -165,6 +256,25 @@ export class LevelScene extends Phaser.Scene {
     );
     this.player.sprite.setDepth(Depth.player);
     this.physics.add.collider(this.player.sprite, this.collisionLayer);
+
+    this.viewLeft = nextPixelViewLeft(
+      0,
+      this.startX,
+      LOGICAL_WIDTH,
+      this.levelWidthPx,
+      this.tuning.cameraLeadFraction,
+    );
+    this.actors = new StageActors(
+      this.compiled.enemies,
+      { isSolid: this.isSolidTile, tileSize: TILE_SIZE, levelHeightPx: this.levelHeightPx },
+      this.actorEvents,
+    );
+    this.actors.start(this.viewLeft);
+    this.actorSprites = new ActorSprites(this, this.actors, {
+      behindTiles: Depth.behindTiles,
+      actors: Depth.actors,
+    });
+    this.perfSampler = new PerfSampler(this, this.bridge, refreshHz, this.countActors);
 
     this.fitCameraToLogicalView(readZoom(this.registry) ?? FALLBACK_ZOOM);
     this.listen();
@@ -180,15 +290,35 @@ export class LevelScene extends Phaser.Scene {
 
   override update(_time: number, delta: number): void {
     if (this.options.devTools) this.perfSampler.recordFrame();
-    if (!this.goal.active && !this.finished) this.session.tick(delta);
+    this.stepPower(delta);
+    if (this.death.active) this.stepDeath(delta);
+    if (!this.worldFrozen && !this.goal.active && !this.finished) {
+      this.blockClockMs += delta;
+      this.session.tick(delta);
+      if (this.session.timeUp && this.goal.phase === 'inactive') this.killPip('time-up');
+    }
     this.effects.update(delta);
+    this.popups.update(delta);
     this.advanceStarShimmer(delta);
     if (!this.player.isScripted) {
       this.collectPickups();
       this.checkGoalReached();
+      this.checkCheckpoint();
     }
-    if (this.goal.active) this.stepGoal(delta);
+    if (this.goal.phase !== 'inactive' && !this.finished) this.stepGoal(delta);
+    this.updatePipFlash(delta);
     this.emitHudIfChanged();
+  }
+
+  private get worldFrozen(): boolean {
+    return this.power.frozen || this.death.phase !== 'inactive' || this.gameIsOver;
+  }
+
+  private placeStart(): void {
+    const respawnCell = this.runData.checkpointReached ? this.compiled.checkpoint : null;
+    const start = respawnCell ?? this.compiled.start;
+    this.startX = (start.column + 0.5) * TILE_SIZE;
+    this.startY = (start.row + 1) * TILE_SIZE - PIP_HALF_HEIGHT;
   }
 
   private buildTileLayers(tilesetKey: AssetId): Phaser.Tilemaps.TilemapLayer {
@@ -213,10 +343,11 @@ export class LevelScene extends Phaser.Scene {
     return map.createLayer(0, tileset, 0, 0)!;
   }
 
-  private buildPickups(): void {
+  private buildPickups(collectedPostmarks: readonly number[]): void {
     const { width, height, coins, postmarks } = this.compiled;
     this.coins = new PickupField(width, height, coins, TILE_SIZE, PICKUP_INSET);
     this.postmarks = new PickupField(width, height, postmarks, TILE_SIZE, PICKUP_INSET);
+    this.collectedPostmarks = [...collectedPostmarks];
     this.coinSprites = coins.map((cell) => {
       const sprite = this.add.sprite(
         cellCentreX(cell),
@@ -227,11 +358,14 @@ export class LevelScene extends Phaser.Scene {
       sprite.setDepth(Depth.pickups).play(COIN_SPIN_ANIMATION);
       return sprite;
     });
-    this.postmarkSprites = postmarks.map((cell) =>
-      this.add
+    this.postmarkSprites = postmarks.map((cell, index) => {
+      const taken = collectedPostmarks.includes(index);
+      if (taken) this.postmarks.collectCell(cell.column, cell.row);
+      return this.add
         .image(cellCentreX(cell), cellCentreY(cell), GAMEPLAY_ATLAS_ID, ItemFrame.postmark)
-        .setDepth(Depth.pickups),
-    );
+        .setDepth(Depth.pickups)
+        .setVisible(!taken);
+    });
   }
 
   private buildGoal(): void {
@@ -239,6 +373,8 @@ export class LevelScene extends Phaser.Scene {
     const poleX = column * TILE_SIZE + HALF_TILE;
     const poleTopY = poleTopRow * TILE_SIZE + GOAL_POLE_TOP_SIZE;
     const baseTopY = baseRow * TILE_SIZE;
+    this.goalPoleTopY = poleTopY;
+    this.goalBaseTopY = baseTopY;
     this.add
       .image(poleX, poleTopY, GAMEPLAY_ATLAS_ID, ItemFrame.pole)
       .setOrigin(0.5, 0)
@@ -270,20 +406,44 @@ export class LevelScene extends Phaser.Scene {
     };
   }
 
+  private buildCheckpoint(): void {
+    const cell = this.compiled.checkpoint;
+    const reached = this.runData.checkpointReached === true;
+    this.checkpoint = new CheckpointTracker(cell === null ? null : cellCentreX(cell), reached);
+    this.checkpointPost =
+      cell === null
+        ? null
+        : this.add
+            .image(
+              cellCentreX(cell),
+              (cell.row + 1) * TILE_SIZE,
+              GAMEPLAY_ATLAS_ID,
+              reached ? ItemFrame.checkpointUp : ItemFrame.checkpointDown,
+            )
+            .setOrigin(0.5, 1)
+            .setDepth(Depth.goal);
+  }
+
   private listen(): void {
     this.controls.attach(window);
     this.events.on(Phaser.Scenes.Events.PRE_UPDATE, this.pollGamepad);
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.followPlayer);
+    // The Arcade plugin nulls physics.world on shutdown, possibly before this scene's clean-up runs.
+    const world = this.physics.world;
+    world.on(Phaser.Physics.Arcade.Events.WORLD_STEP, this.stepActors);
     const unsubscribe = this.bridge.onCommand(this.handleCommand);
     this.registry.events.on(registryChangeEvent('zoom'), this.applyZoom);
     let cleanedUp = false;
     const cleanUp = (): void => {
       if (cleanedUp) return;
       cleanedUp = true;
+      this.events.off(Phaser.Scenes.Events.SHUTDOWN, cleanUp);
+      this.events.off(Phaser.Scenes.Events.DESTROY, cleanUp);
       unsubscribe();
       this.controls.detach();
       this.events.off(Phaser.Scenes.Events.PRE_UPDATE, this.pollGamepad);
       this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.followPlayer);
+      world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, this.stepActors);
       this.registry.events.off(registryChangeEvent('zoom'), this.applyZoom);
       this.stopLoadReporting();
       this.player.destroy();
@@ -291,6 +451,7 @@ export class LevelScene extends Phaser.Scene {
       this.coinSprites = [];
       this.postmarkSprites = [];
       this.starTiles = [];
+      this.checkpointPost = null;
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanUp);
     this.events.once(Phaser.Scenes.Events.DESTROY, cleanUp);
@@ -306,6 +467,9 @@ export class LevelScene extends Phaser.Scene {
       case 'resume':
         this.scene.resume();
         this.bridge.emit({ type: 'resumed' });
+        break;
+      case 'restart':
+        this.scene.restart({});
         break;
       case 'applyTuning':
         this.tuning = command.tuning;
@@ -336,11 +500,10 @@ export class LevelScene extends Phaser.Scene {
     this.controls.pollGamepad();
   };
 
+  private readonly countActors = (): number => this.actors.activeCount;
+
   private readonly followPlayer = (_time: number, delta: number): void => {
-    if (!this.player.isScripted && this.player.top > this.levelHeightPx) {
-      this.player.respawn(this.startX, this.startY);
-      this.viewLeft = 0;
-    }
+    if (!this.player.isScripted && this.player.top > this.levelHeightPx) this.killPip('pit');
     this.viewLeft = nextPixelViewLeft(
       this.viewLeft,
       this.player.sprite.x,
@@ -350,14 +513,160 @@ export class LevelScene extends Phaser.Scene {
     );
     this.player.clampToViewLeft(this.viewLeft);
     this.player.updateAnimation();
+    this.actorSprites.sync();
     this.centerCamera();
     this.parallax.update(this.viewLeft, delta);
   };
+
+  private readonly stepActors = (): void => {
+    if (this.worldFrozen) return;
+    const dt = 1 / this.physics.world.fps;
+    if (!this.player.isScripted) {
+      this.checkHiddenBlocks();
+      this.throwOnPress();
+    }
+    this.updateProbe();
+    this.actors.step(dt, this.probe, this.viewLeft);
+  };
+
+  private updateProbe(): void {
+    const body = this.player.sprite.body;
+    const probe = this.probe;
+    probe.box.x = body.x;
+    probe.box.y = body.y;
+    probe.box.width = body.width;
+    probe.box.height = body.height;
+    probe.vy = this.player.controller.vy;
+    probe.onGround = this.player.grounded;
+    probe.starPower = this.power.starPower;
+    probe.vulnerable = this.power.vulnerable;
+    probe.interactive = !this.player.isScripted;
+  }
+
+  private throwOnPress(): void {
+    const run = this.controls.resolve().run;
+    const pressed = run && !this.runHeldLastStep;
+    this.runHeldLastStep = run;
+    if (!pressed || !this.power.canThrow || this.player.isCrouching) return;
+    const body = this.player.sprite.body;
+    const facing = this.player.controller.facing;
+    const handX = body.center.x + facing * PARCEL_HAND_REACH_PX;
+    if (this.actors.throwParcel(handX, body.top + PARCEL_HAND_HEIGHT_PX, facing)) {
+      this.player.startThrowPose();
+    }
+  }
+
+  private readonly actorEvents: ActorEvents = {
+    award: (points, x, y) => this.award(points, x, y),
+    bouncePip: () => this.player.bounce(COMBAT.stompBounceSpeed),
+    hurtPip: () => this.hurtPip(),
+    collectPowerUp: (kind, x, y) => this.collectPowerUp(kind, x, y),
+    parcelBurst: (x, y) => this.effects.sparkle(x, y),
+  };
+
+  private award(points: number, x: number, y: number): void {
+    if (points === ONE_UP) this.session.addLife();
+    else this.session.addScore(points);
+    this.popups.show(points, x, y);
+  }
+
+  private hurtPip(): void {
+    const outcome = this.power.damage();
+    if (outcome === 'shrink') this.beginTransition();
+    else if (outcome === 'death') this.killPip('hit');
+  }
+
+  private collectPowerUp(kind: PowerUpKind, x: number, y: number): void {
+    switch (kind) {
+      case 'parcel-box':
+      case 'spark-stamp':
+        this.award(SCORING.powerUpPoints, x, y);
+        if (this.power.collect(kind) === 'transform') this.beginTransition();
+        break;
+      case 'rush-star':
+        this.award(SCORING.powerUpPoints, x, y);
+        this.power.startStar();
+        this.starTintElapsedMs = 0;
+        break;
+      case 'green-stamp':
+        this.award(ONE_UP, x, y);
+        break;
+    }
+  }
+
+  private beginTransition(): void {
+    this.player.beginScripted();
+    this.session.setPower(this.power.form);
+    this.player.holdPose(this.power.displayForm);
+  }
+
+  private stepPower(deltaMs: number): void {
+    if (this.death.phase !== 'inactive' || this.gameIsOver) return;
+    const ended = this.power.step(deltaMs);
+    if (ended) {
+      this.player.setForm(this.power.form);
+      this.player.endScripted();
+    } else if (this.power.frozen) {
+      this.player.holdPose(this.power.displayForm);
+    }
+  }
+
+  private killPip(cause: DeathCause): void {
+    if (this.death.phase !== 'inactive' || this.finished || this.gameIsOver) return;
+    const sprite = this.player.sprite;
+    this.player.beginScripted();
+    this.session.stopClock();
+    this.death.start(sprite.y, cause);
+    if (cause === 'pit') this.player.hide();
+    else this.player.showDeath(sprite.x, sprite.y);
+  }
+
+  private stepDeath(deltaMs: number): void {
+    this.death.step(deltaMs);
+    if (this.death.phase === 'fall') {
+      this.player.sprite.y = Math.round(this.death.y);
+    }
+    if (this.death.done) this.finishLife();
+  }
+
+  private finishLife(): void {
+    const livesLeft = this.session.loseLife();
+    this.emitHudIfChanged();
+    this.bridge.emit({ type: 'playerDied', stageId: this.level.id, livesLeft });
+    if (livesLeft > 0) {
+      const next: LevelSceneData = {
+        run: this.session.totals(),
+        checkpointReached: this.checkpoint.reached,
+        postmarksCollected: this.collectedPostmarks,
+      };
+      this.scene.restart(next);
+      return;
+    }
+    this.gameIsOver = true;
+    this.player.hide();
+    this.bridge.emit({ type: 'gameOver', result: this.stageResult() });
+  }
 
   private readonly isSolidTile = (tx: number, ty: number): boolean => {
     const row = this.compiled.collision[ty];
     return row !== undefined && (row[tx] ?? EMPTY_TILE) !== EMPTY_TILE;
   };
+
+  private readonly isHiddenBlock = (tx: number, ty: number): boolean =>
+    this.blocks.isHidden(tx, ty);
+
+  private checkHiddenBlocks(): void {
+    if (this.player.controller.vy >= 0) return;
+    const body = this.player.sprite.body;
+    const row = Math.floor(body.top / TILE_SIZE);
+    const column = pickBumpedColumn(body.left, body.right, row, TILE_SIZE, this.isHiddenBlock);
+    if (column === null) return;
+    this.blocks.reveal(column, row);
+    this.compiled.collision[row][column] = Tile.usedBlock;
+    const tile = this.collisionLayer.putTileAt(Tile.usedBlock, column, row);
+    this.player.stopUnderBlock((row + 1) * TILE_SIZE);
+    this.applyBlockHit(hiddenBlockOutcome(this.blocks.itemAt(column, row)), tile, column, row);
+  }
 
   private readonly handleHeadBump = (
     bodyLeft: number,
@@ -369,18 +678,86 @@ export class LevelScene extends Phaser.Scene {
     if (column === null) return;
     const tile = this.collisionLayer.getTileAt(column, row);
     if (tile === null || this.effects.isBumping(tile)) return;
-    const outcome = blockHitOutcome(tile.index);
-    if (outcome === 'none') return;
-    if (outcome === 'release-coin') {
-      tile.index = Tile.usedBlock;
-      this.compiled.collision[row][column] = Tile.usedBlock;
-      this.session.addCoin();
-      this.effects.popCoin(tile.pixelX + HALF_TILE, tile.pixelY);
+    const item = this.blocks.itemAt(column, row);
+    const outcome = blockHitOutcome(tile.index, item, this.power.canBreakBricks);
+    this.applyBlockHit(outcome, tile, column, row);
+  };
+
+  private applyBlockHit(
+    outcome: BlockHitOutcome,
+    tile: Phaser.Tilemaps.Tile,
+    column: number,
+    row: number,
+  ): void {
+    switch (outcome) {
+      case 'none':
+        return;
+      case 'release-coin':
+        this.markUsed(tile, column, row);
+        this.payBlockCoin(tile);
+        break;
+      case 'release-item':
+        this.releaseItem(column, row);
+        this.markUsed(tile, column, row);
+        break;
+      case 'multi-coin':
+        if (this.blocks.hitMultiCoin(column, row, this.blockClockMs)) {
+          this.markUsed(tile, column, row);
+        }
+        this.payBlockCoin(tile);
+        break;
+      case 'break':
+        this.breakBrick(tile, column, row);
+        return;
+      case 'bump':
+        break;
     }
     this.effects.bump(tile);
+    this.disturbAbove(column, row);
+  }
+
+  private markUsed(tile: Phaser.Tilemaps.Tile, column: number, row: number): void {
+    tile.index = Tile.usedBlock;
+    this.compiled.collision[row][column] = Tile.usedBlock;
+  }
+
+  private payBlockCoin(tile: Phaser.Tilemaps.Tile): void {
+    this.session.addCoin();
+    this.effects.popCoin(tile.pixelX + HALF_TILE, tile.pixelY);
+  }
+
+  private releaseItem(column: number, row: number): void {
+    const item = this.blocks.takeItem(column, row);
+    const kind = this.itemKindFor(item);
+    if (kind !== null) this.actors.releasePowerUp(kind, column, row);
+  }
+
+  private itemKindFor(item: BlockItem | null): PowerUpKind | null {
+    switch (item) {
+      case 'power':
+        return this.power.form === 'small' ? 'parcel-box' : 'spark-stamp';
+      case 'star':
+        return 'rush-star';
+      case 'one-up':
+        return 'green-stamp';
+      default:
+        return null;
+    }
+  }
+
+  private breakBrick(tile: Phaser.Tilemaps.Tile, column: number, row: number): void {
+    this.effects.breakBrick(tile);
+    this.collisionLayer.removeTileAt(column, row);
+    this.compiled.collision[row][column] = EMPTY_TILE;
+    this.session.addScore(SCORING.brickPoints);
+    this.disturbAbove(column, row);
+  }
+
+  private disturbAbove(column: number, row: number): void {
+    this.actors.bumpBlock(column, row);
     const coinAbove = this.coins.collectCell(column, row - 1);
     if (coinAbove >= 0) this.takeCoin(coinAbove, true);
-  };
+  }
 
   private collectPickups(): void {
     const body = this.player.sprite.body;
@@ -401,8 +778,10 @@ export class LevelScene extends Phaser.Scene {
       collected,
     );
     for (let i = 0; i < postmarkCount; i++) {
-      const sprite = this.postmarkSprites[collected[i]];
+      const index = collected[i];
+      const sprite = this.postmarkSprites[index];
       sprite.setVisible(false);
+      this.collectedPostmarks.push(index);
       this.session.collectPostmark();
       this.effects.sparkle(sprite.x, sprite.y);
     }
@@ -416,38 +795,80 @@ export class LevelScene extends Phaser.Scene {
     else this.effects.sparkle(sprite.x, sprite.y);
   }
 
+  private checkCheckpoint(): void {
+    if (!this.checkpoint.update(this.player.sprite.x)) return;
+    this.checkpointPost?.setFrame(ItemFrame.checkpointUp);
+    const cell = this.compiled.checkpoint!;
+    this.bridge.emit({ type: 'checkpoint', stageId: this.level.id, column: cell.column });
+  }
+
   private checkGoalReached(): void {
     if (this.finished || this.goal.phase !== 'inactive') return;
-    if (this.player.sprite.body.right < this.goalTriggerX) return;
+    const body = this.player.sprite.body;
+    if (body.right < this.goalTriggerX) return;
+    const feetY = body.bottom;
     this.player.beginScripted();
+    this.player.showFlash(true, null);
     this.session.stopClock();
     this.goal.start(this.player.sprite.y, this.goalLayout);
     this.player.placeScripted(this.goal.x, this.goal.y, 'goal-grab', 1);
+    const fraction = grabHeightFraction(feetY, this.goalPoleTopY, this.goalBaseTopY);
+    this.award(goalHeightPoints(fraction, GOAL_HEIGHT_BANDS), this.goalLayout.poleX, feetY);
   }
 
   private stepGoal(deltaMs: number): void {
     const goal = this.goal;
-    goal.step(deltaMs / MS_PER_SECOND);
-    this.flag.y = Math.round(goal.flagY);
-    const animation = goal.phase === 'slide' ? 'goal-grab' : goal.phase === 'hop' ? 'jump' : 'walk';
-    this.player.placeScripted(Math.round(goal.x), Math.round(goal.y), animation, 1);
-    if (goal.phase === 'done') this.finishStage();
+    if (goal.active) {
+      goal.step(deltaMs / MS_PER_SECOND);
+      this.flag.y = Math.round(goal.flagY);
+      const animation =
+        goal.phase === 'slide' ? 'goal-grab' : goal.phase === 'hop' ? 'jump' : 'walk';
+      this.player.placeScripted(Math.round(goal.x), Math.round(goal.y), animation, 1);
+    }
+    if (goal.phase === 'done') this.player.hide();
+    const leftThePole = goal.phase === 'walk' || goal.phase === 'done';
+    if (leftThePole && !this.tally.active && !this.tally.done) {
+      this.tally.start(this.session.hud.timeLeft);
+    }
+    this.session.convertTime(this.tally.step(deltaMs));
+    if (goal.phase === 'done' && this.tally.done) this.finishStage();
   }
 
   private finishStage(): void {
     if (this.finished) return;
     this.finished = true;
     this.player.hide();
-    this.bridge.emit({
-      type: 'stageComplete',
-      result: {
-        stageId: this.level.id,
-        score: this.session.hud.score,
-        coins: this.session.hud.coins,
-        timeLeft: this.session.hud.timeLeft,
-        postmarks: this.session.postmarks,
-      },
-    });
+    this.emitHudIfChanged();
+    this.bridge.emit({ type: 'stageComplete', result: this.stageResult() });
+  }
+
+  private stageResult(): StageResult {
+    const hud = this.session.hud;
+    return {
+      stageId: this.level.id,
+      score: hud.score,
+      coins: hud.coins,
+      timeLeft: hud.timeLeft,
+      postmarks: this.session.postmarks,
+    };
+  }
+
+  private updatePipFlash(deltaMs: number): void {
+    if (this.player.isScripted && !this.power.frozen) return;
+    const power = this.power;
+    const visible =
+      !power.invulnerable ||
+      flickerVisible(power.invulnerableElapsedMs, POWER_RULES.flickerFrameMs);
+    if (!power.starPower) {
+      this.player.showFlash(visible, null);
+      return;
+    }
+    this.starTintElapsedMs += deltaMs;
+    const frameMs = power.starEnding
+      ? POWER_RULES.starTintEndingFrameMs
+      : POWER_RULES.starTintFrameMs;
+    const tint = STAR_TINTS[frameAt(this.starTintElapsedMs, frameMs, STAR_TINTS.length)];
+    this.player.showFlash(visible, tint);
   }
 
   private advanceStarShimmer(deltaMs: number): void {

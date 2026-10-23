@@ -1,5 +1,11 @@
 import type { ScoringRules } from '../../configuration/scoring.config';
-import type { HudState } from '../../core/game-events';
+import type { HudState, PowerForm } from '../../core/game-events';
+
+export interface RunTotals {
+  readonly score: number;
+  readonly coins: number;
+  readonly lives: number;
+}
 
 export class StageSession {
   private readonly state: HudState;
@@ -10,10 +16,18 @@ export class StageSession {
 
   constructor(
     timeLimit: number,
-    lives: number,
+    totals: RunTotals,
     private readonly rules: ScoringRules,
+    postmarks = 0,
   ) {
-    this.state = { score: 0, coins: 0, timeLeft: timeLimit, lives };
+    this.state = {
+      score: totals.score,
+      coins: totals.coins,
+      timeLeft: timeLimit,
+      lives: totals.lives,
+      power: 'small',
+    };
+    this.postmarkCount = postmarks;
   }
 
   get hud(): Readonly<HudState> {
@@ -22,6 +36,10 @@ export class StageSession {
 
   get postmarks(): number {
     return this.postmarkCount;
+  }
+
+  get timeUp(): boolean {
+    return this.state.timeLeft === 0;
   }
 
   addCoin(): void {
@@ -46,6 +64,23 @@ export class StageSession {
     this.dirty = true;
   }
 
+  addLife(): void {
+    this.state.lives++;
+    this.dirty = true;
+  }
+
+  loseLife(): number {
+    this.state.lives = Math.max(0, this.state.lives - 1);
+    this.dirty = true;
+    return this.state.lives;
+  }
+
+  setPower(power: PowerForm): void {
+    if (this.state.power === power) return;
+    this.state.power = power;
+    this.dirty = true;
+  }
+
   tick(elapsedMs: number): void {
     if (!this.clockRunning || this.state.timeLeft === 0) return;
     this.unitElapsedMs += elapsedMs;
@@ -56,8 +91,21 @@ export class StageSession {
     }
   }
 
+  convertTime(units: number): number {
+    const converted = Math.min(units, this.state.timeLeft);
+    if (converted <= 0) return 0;
+    this.state.timeLeft -= converted;
+    this.state.score += converted * this.rules.timeBonusPerUnit;
+    this.dirty = true;
+    return converted;
+  }
+
   stopClock(): void {
     this.clockRunning = false;
+  }
+
+  totals(): RunTotals {
+    return { score: this.state.score, coins: this.state.coins, lives: this.state.lives };
   }
 
   consumeChange(): boolean {

@@ -37,6 +37,7 @@ export class GameShellComponent {
   protected readonly stageLabel = this.session.stageLabel;
   protected readonly loaded = this.session.loaded;
   protected readonly stageResult = this.session.stageResult;
+  protected readonly gameOver = this.session.gameOver;
   protected readonly loadPercent = computed(() => Math.round(this.session.loadProgress() * 100));
 
   constructor() {
@@ -53,6 +54,10 @@ export class GameShellComponent {
     });
 
     destroyRef.onDestroy(() => this.session.detach());
+  }
+
+  protected retry(): void {
+    this.session.send({ type: 'restart' });
   }
 
   protected applyTuning(tuning: MovementTuning): void {

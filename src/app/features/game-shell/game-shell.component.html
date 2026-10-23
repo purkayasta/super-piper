@@ -10,6 +10,18 @@
     <a class="banner-link" routerLink="/">Menu</a>
   </section>
 }
+@if (gameOver(); as result) {
+  <section class="banner" role="status">
+    <h2 class="banner-title">GAME OVER</h2>
+    <p class="banner-score">SCORE {{ result.score }}</p>
+    <div class="banner-actions">
+      <button type="button" class="banner-button" data-testid="retry" (click)="retry()">
+        Retry
+      </button>
+      <a class="banner-link" routerLink="/">Menu</a>
+    </div>
+  </section>
+}
 <a class="menu-link" routerLink="/">Menu</a>
 @if (devTools) {
   <app-dev-overlay [sample]="perf()" />

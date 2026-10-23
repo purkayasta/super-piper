@@ -1,15 +1,21 @@
 import type { StageId } from '../core/game-events';
 import {
+  BLOCK_ITEMS,
+  CHECKPOINT_HEIGHT_TILES,
   GOAL_POLE_HEIGHT_TILES,
+  ITEM_BLOCK_SYMBOLS,
   LEVEL_LEGEND,
   LEVEL_ROWS,
   LegendSymbol,
+  PLACED_ENEMY_KINDS,
   VIEW_COLUMNS,
   type LevelDefinition,
   type LevelEntity,
 } from './level-format';
 
 export const REQUIRED_POSTMARKS = 3;
+
+export const MAX_CHECKPOINTS = 1;
 
 export interface ValidationOptions {
   readonly knownStages?: ReadonlySet<StageId>;
@@ -92,9 +98,14 @@ function validateEntities(level: LevelDefinition, options: ValidationOptions): s
   if (postmarks.length !== REQUIRED_POSTMARKS) {
     errors.push(`Level needs exactly ${REQUIRED_POSTMARKS} Postmarks, found ${postmarks.length}`);
   }
+  const checkpoints = level.entities.filter((entity) => entity.kind === 'checkpoint');
+  if (checkpoints.length > MAX_CHECKPOINTS) {
+    errors.push(`Level allows at most ${MAX_CHECKPOINTS} checkpoint, found ${checkpoints.length}`);
+  }
   const claimed = new Map<string, string>();
   level.entities.forEach((entity, index) => {
     const label = `${entity.kind} #${index}`;
+    errors.push(...validateEntityKind(entity, label));
     const cells = entityCells(level, entity);
     if (cells === null) {
       errors.push(`${label} is outside the level or has no ground below it`);
@@ -102,7 +113,9 @@ function validateEntities(level: LevelDefinition, options: ValidationOptions): s
     }
     for (const [column, row] of cells) {
       const symbol = level.rows[row][column];
-      if (symbol !== LegendSymbol.empty) {
+      if (entity.kind === 'item-block') {
+        errors.push(...validateItemBlockCell(entity.item, symbol, label));
+      } else if (symbol !== LegendSymbol.empty) {
         errors.push(`${label} overlaps "${symbol}" at row ${row}, column ${column}`);
       }
       const key = `${column},${row}`;
@@ -119,7 +132,43 @@ function validateEntities(level: LevelDefinition, options: ValidationOptions): s
     }
   });
   errors.push(...validateDoor(level, goals[0]));
+  errors.push(...validateCheckpointPlacement(level, checkpoints[0], goals[0]));
   return errors;
+}
+
+function validateEntityKind(entity: LevelEntity, label: string): string[] {
+  if (entity.kind === 'enemy' && !PLACED_ENEMY_KINDS.includes(entity.enemy)) {
+    return [`${label} has unknown enemy "${entity.enemy}"`];
+  }
+  if (entity.kind === 'item-block' && !BLOCK_ITEMS.includes(entity.item)) {
+    return [`${label} has unknown item "${entity.item}"`];
+  }
+  return [];
+}
+
+function validateItemBlockCell(item: string, symbol: string, label: string): string[] {
+  if (!ITEM_BLOCK_SYMBOLS.includes(symbol)) {
+    return [`${label} must sit on a block ("?", "B" or "h"), found "${symbol}"`];
+  }
+  if (item === 'multi-coin' && symbol !== LegendSymbol.brick) {
+    return [`${label} puts multi-coin on "${symbol}", but only bricks "B" can hold it`];
+  }
+  return [];
+}
+
+function validateCheckpointPlacement(
+  level: LevelDefinition,
+  checkpoint: LevelEntity | undefined,
+  goal: LevelEntity | undefined,
+): string[] {
+  if (checkpoint === undefined || checkpoint.kind !== 'checkpoint') return [];
+  const startColumn = level.rows.reduce(
+    (found, row) => (found >= 0 ? found : row.indexOf(LegendSymbol.start)),
+    -1,
+  );
+  const goalColumn = goal !== undefined && goal.kind === 'goal' ? goal.column : Infinity;
+  if (checkpoint.column > startColumn && checkpoint.column < goalColumn) return [];
+  return [`Checkpoint at column ${checkpoint.column} must lie between the start and the goal`];
 }
 
 function entityCells(level: LevelDefinition, entity: LevelEntity): [number, number][] | null {
@@ -129,7 +178,19 @@ function entityCells(level: LevelDefinition, entity: LevelEntity): [number, numb
     column >= 0 && column < width && row >= 0 && row < rows.length;
   switch (entity.kind) {
     case 'postmark':
+    case 'enemy':
+    case 'item-block':
       return inBounds(entity.column, entity.row) ? [[entity.column, entity.row]] : null;
+    case 'checkpoint': {
+      if (!inBounds(entity.column, 0)) return null;
+      const ground = firstSolidRowBelow(rows, entity.column, 0);
+      if (ground === null || ground - CHECKPOINT_HEIGHT_TILES < 0) return null;
+      const cells: [number, number][] = [];
+      for (let row = ground - CHECKPOINT_HEIGHT_TILES; row < ground; row++) {
+        cells.push([entity.column, row]);
+      }
+      return cells;
+    }
     case 'tube': {
       if (!inBounds(entity.column, entity.topRow) || !inBounds(entity.column + 1, entity.topRow)) {
         return null;

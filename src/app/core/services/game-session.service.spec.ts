@@ -74,7 +74,7 @@ describe('GameSessionService', () => {
   });
 
   it('mirrors HUD changes and the stage result', () => {
-    const hud: HudState = { score: 200, coins: 1, timeLeft: 399, lives: 3 };
+    const hud: HudState = { score: 200, coins: 1, timeLeft: 399, lives: 3, power: 'small' };
     const result: StageResult = {
       stageId: '1-1',
       score: 5000,
@@ -124,9 +124,16 @@ describe('GameSessionService', () => {
   it('resets every mirrored value on a new attach', () => {
     service.attach(host, options);
     bridge.emit({ type: 'loadComplete', stageId: 'sandbox', stageLabel: 'SANDBOX' });
-    bridge.emit({ type: 'hudChanged', hud: { score: 1, coins: 1, timeLeft: 1, lives: 1 } });
+    bridge.emit({
+      type: 'hudChanged',
+      hud: { score: 1, coins: 1, timeLeft: 1, lives: 1, power: 'big' },
+    });
     bridge.emit({
       type: 'stageComplete',
+      result: { stageId: 'sandbox', score: 1, coins: 1, timeLeft: 1, postmarks: 0 },
+    });
+    bridge.emit({
+      type: 'gameOver',
       result: { stageId: 'sandbox', score: 1, coins: 1, timeLeft: 1, postmarks: 0 },
     });
     bridge.emit({ type: 'paused' });
@@ -140,6 +147,18 @@ describe('GameSessionService', () => {
     expect(service.stageLabel()).toBe('');
     expect(service.hud()).toBeNull();
     expect(service.stageResult()).toBeNull();
+    expect(service.gameOver()).toBeNull();
+  });
+
+  it('shows game over until the stage loads again', () => {
+    const result: StageResult = { stageId: '1-1', score: 900, coins: 3, timeLeft: 0, postmarks: 0 };
+    service.attach(host, options);
+    bridge.emit({ type: 'playerDied', stageId: '1-1', livesLeft: 0 });
+    expect(service.gameOver()).toBeNull();
+    bridge.emit({ type: 'gameOver', result });
+    expect(service.gameOver()).toEqual(result);
+    bridge.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
+    expect(service.gameOver()).toBeNull();
   });
 
   it('disposes the bridge and stays detached when the factory throws', () => {

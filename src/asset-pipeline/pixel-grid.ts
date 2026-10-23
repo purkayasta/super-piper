@@ -57,3 +57,32 @@ export function unknownSymbols(grid: PixelGrid, palette: PixelPalette): string[]
   }
   return [...unknown];
 }
+
+export function padGridTop(grid: PixelGrid, height: number): PixelGrid {
+  const width = grid.length > 0 ? grid[0].length : 0;
+  if (grid.length > height) throw new Error(`Grid is ${grid.length} rows, taller than ${height}`);
+  const blank = TRANSPARENT_SYMBOL.repeat(width);
+  return [...Array.from({ length: height - grid.length }, () => blank), ...grid];
+}
+
+export function overlayGrid(base: PixelGrid, overlay: PixelGrid): PixelGrid {
+  if (overlay.length !== base.length || overlay.some((row, i) => row.length !== base[i].length)) {
+    throw new Error('Overlay must match the base grid size');
+  }
+  return base.map((row, rowIndex) =>
+    [...row]
+      .map((symbol, column) => {
+        const top = overlay[rowIndex][column];
+        return top === TRANSPARENT_SYMBOL ? symbol : top;
+      })
+      .join(''),
+  );
+}
+
+export function rotateGridClockwise(grid: PixelGrid): PixelGrid {
+  const height = grid.length;
+  const width = height > 0 ? grid[0].length : 0;
+  return Array.from({ length: width }, (_, row) =>
+    Array.from({ length: height }, (_, column) => grid[height - 1 - column][row]).join(''),
+  );
+}

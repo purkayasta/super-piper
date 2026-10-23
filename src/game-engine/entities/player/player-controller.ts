@@ -80,6 +80,20 @@ export class PlayerController {
     this.jumpHeldLastStep = true;
   }
 
+  bounce(speed: number): void {
+    this.velocityY = -speed;
+    this.midpointY = this.velocityY;
+    this.fallGravityLocked = false;
+    this.msSinceGrounded = Infinity;
+    this.currentMode = 'air';
+  }
+
+  stopRising(): void {
+    this.velocityY = Math.max(this.velocityY, 0);
+    this.midpointY = Math.max(this.midpointY, 0);
+    this.fallGravityLocked = true;
+  }
+
   step(actions: ActionState, contacts: Contacts, dtSeconds: number): void {
     const dt = Math.min(dtSeconds, this.tuning.maxStepSeconds);
     if (!(dt > 0)) return;

@@ -6,16 +6,16 @@ The game is built in **8 phases**. Every phase ends with a **browser review by t
 
 Each phase has its own detailed task plan in [`plans/`](plans/). Detailed plans are written **just before a phase starts**, so they include what was learned in the previous review. Phases 1 and 2 are detailed now.
 
-| #   | Phase                                                | Detailed plan                                                  | Status                 |
-| --- | ---------------------------------------------------- | -------------------------------------------------------------- | ---------------------- |
-| 1   | Skeleton                                             | [`plans/phase-1-skeleton.md`](plans/phase-1-skeleton.md)       | Done                   |
-| 2   | Pip's feel                                           | [`plans/phase-2-feel.md`](plans/phase-2-feel.md)               | Built, review deferred |
-| 3   | Art pipeline + World 1-1                             | [`plans/phase-3-art-and-1-1.md`](plans/phase-3-art-and-1-1.md) | Built, review deferred |
-| 4   | Enemies, power-ups, rules                            | written after Phase 3 review                                   | —                      |
-| 5   | Sound and music                                      | written after Phase 4 review                                   | —                      |
-| 6   | Angular shell + saves                                | written after Phase 5 review                                   | —                      |
-| 7   | Rest of World 1                                      | written after Phase 6 review                                   | —                      |
-| 8   | Mobile, performance, polish, **GitHub Pages deploy** | written after Phase 7 review                                   | —                      |
+| #   | Phase                                                | Detailed plan                                                              | Status                 |
+| --- | ---------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------- |
+| 1   | Skeleton                                             | [`plans/phase-1-skeleton.md`](plans/phase-1-skeleton.md)                   | Done                   |
+| 2   | Pip's feel                                           | [`plans/phase-2-feel.md`](plans/phase-2-feel.md)                           | Built, review deferred |
+| 3   | Art pipeline + World 1-1                             | [`plans/phase-3-art-and-1-1.md`](plans/phase-3-art-and-1-1.md)             | Built, review deferred |
+| 4   | Enemies, power-ups, rules                            | [`plans/phase-4-enemies-and-rules.md`](plans/phase-4-enemies-and-rules.md) | Built, review deferred |
+| 5   | Sound and music                                      | written after Phase 4 review                                               | —                      |
+| 6   | Angular shell + saves                                | written after Phase 5 review                                               | —                      |
+| 7   | Rest of World 1                                      | written after Phase 6 review                                               | —                      |
+| 8   | Mobile, performance, polish, **GitHub Pages deploy** | written after Phase 7 review                                               | —                      |
 
 ## How a review works
 
@@ -117,6 +117,14 @@ Phaser chunk: 1.11 MB raw, 243 kB transfer (arcade-only build). Initial bundle: 
 - **Big Pip** (16×32) frames, plus the grow/shrink and death animations (moved from Phase 3)
 - **Rules:** damage and shrink, death, the checkpoint, scoring with stomp combos, the timer, lives, and goal-height points
 - the HUD wired to bridge events
+
+**Scope notes (built without a review):**
+
+- Enemies, items and parcels are pure actors stepped with Pip's physics step. Only Pip has an Arcade body (`engine.md` §4.3).
+- Also built: big-Pip crouch, brick breaking, a hidden block, a multi-coin brick, score pop-ups, the checkpoint post, and the goal time-bonus tally.
+- Game over is a simple GAME OVER banner with Retry (the `restart` command) and Menu. Phase 6 builds the real results and map flow.
+- The Rush Star is shown with a tint cycle; its music is Phase 5.
+- Open items for the combined review are in [`plans/deferred-review.md`](plans/deferred-review.md).
 
 **Review checklist:** a full 1-1 run that feels like real SMB1 gameplay. Stomps, shells, power-ups, deaths and checkpoint respawn all work. HUD numbers update correctly. No frame drops in busy moments.
 

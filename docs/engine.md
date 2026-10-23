@@ -77,8 +77,9 @@ The workspace lives at the repo root, `C:\Users\Home\source\repos\mario`, follow
 
 - **Spawning:** enemies are dormant until the camera's right edge reaches their spawn column (SMB1 behaviour). They despawn after falling out of the world or moving far behind the camera. This keeps active bodies low, at **≤ 40 at any time**.
 - **Pooling:** shells, parcels (≤ 2), debris, score pop-ups and coin pops come from pools created at stage start.
-- **Overlaps are limited to these pairs:** Pip↔enemies, Pip↔items, parcels↔enemies, shells↔enemies, plus every group against the tile layer. There are no others.
+- **Overlaps are limited to these pairs:** Pip↔enemies, Pip↔items, parcels↔enemies, shells↔enemies, plus every group against the tile layer. There are no others. Walking enemies also turn when they touch each other (SMB rule).
 - Collision callbacks stay short. They set flags and emit events, and never allocate.
+- **Only Pip has an Arcade body (Phase 4).** Enemies, items and parcels are pure rectangles swept against the collision grid. One pure `StageActors` world steps them on Arcade's `worldstep` with Pip's `dt`, using midpoint gravity, so they match across refresh rates and are unit-tested without Phaser. Pooled sprites only mirror their state each frame. They count toward the overlay's active bodies.
 
 ### 4.4 Camera
 

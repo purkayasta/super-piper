@@ -15,3 +15,16 @@ export function coinPopOffset(elapsedMs: number, durationMs: number, risePx: num
 export function frameAt(elapsedMs: number, frameMs: number, frameCount: number): number {
   return Math.floor(elapsedMs / frameMs) % frameCount;
 }
+
+export function riseOffset(elapsedMs: number, durationMs: number, risePx: number): number {
+  const t = effectProgress(elapsedMs, durationMs);
+  return -risePx * (1 - (1 - t) * (1 - t));
+}
+
+export function ballisticOffset(velocity: number, gravity: number, seconds: number): number {
+  return velocity * seconds + 0.5 * gravity * seconds * seconds;
+}
+
+export function flickerVisible(elapsedMs: number, frameMs: number): boolean {
+  return frameAt(elapsedMs, frameMs, 2) === 0;
+}

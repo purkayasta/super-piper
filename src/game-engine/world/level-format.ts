@@ -8,7 +8,7 @@ export const GOAL_POLE_HEIGHT_TILES = 9;
 
 export type LegendLayer = 'collision' | 'decoration' | 'none';
 
-export type LegendMarker = 'start' | 'coin';
+export type LegendMarker = 'start' | 'coin' | 'hidden';
 
 export interface LegendEntry {
   readonly layer: LegendLayer;
@@ -24,6 +24,7 @@ export const LegendSymbol = {
   starBlock: '?',
   solid: 'X',
   coin: 'o',
+  hiddenBlock: 'h',
   depotWall: 'w',
   depotBattlement: 'm',
   depotDoorTop: 'a',
@@ -38,17 +39,56 @@ export const LEVEL_LEGEND: Readonly<Record<string, LegendEntry>> = {
   [LegendSymbol.starBlock]: { layer: 'collision', tile: Tile.starBlock },
   [LegendSymbol.solid]: { layer: 'collision', tile: Tile.solidBlock },
   [LegendSymbol.coin]: { layer: 'none', tile: EMPTY_TILE, marker: 'coin' },
+  [LegendSymbol.hiddenBlock]: { layer: 'none', tile: EMPTY_TILE, marker: 'hidden' },
   [LegendSymbol.depotWall]: { layer: 'decoration', tile: Tile.depotWall },
   [LegendSymbol.depotBattlement]: { layer: 'decoration', tile: Tile.depotBattlement },
   [LegendSymbol.depotDoorTop]: { layer: 'decoration', tile: Tile.depotDoorTop },
   [LegendSymbol.depotDoor]: { layer: 'decoration', tile: Tile.depotDoor },
 };
 
+export const PLACED_ENEMY_KINDS = ['thornbug', 'shellback', 'flapjack'] as const;
+
+export type PlacedEnemyKind = (typeof PLACED_ENEMY_KINDS)[number];
+
+export type EnemyKind = PlacedEnemyKind | 'snapvine';
+
+export const BLOCK_ITEMS = ['power', 'star', 'one-up', 'multi-coin'] as const;
+
+export type BlockItem = (typeof BLOCK_ITEMS)[number];
+
+export const ITEM_BLOCK_SYMBOLS: readonly string[] = [
+  LegendSymbol.starBlock,
+  LegendSymbol.brick,
+  LegendSymbol.hiddenBlock,
+];
+
+export const CHECKPOINT_HEIGHT_TILES = 2;
+
 export interface TubeEntity {
   readonly kind: 'tube';
   readonly column: number;
   readonly topRow: number;
   readonly destination: StageId | null;
+  readonly snapvine?: boolean;
+}
+
+export interface EnemyEntity {
+  readonly kind: 'enemy';
+  readonly enemy: PlacedEnemyKind;
+  readonly column: number;
+  readonly row: number;
+}
+
+export interface ItemBlockEntity {
+  readonly kind: 'item-block';
+  readonly item: BlockItem;
+  readonly column: number;
+  readonly row: number;
+}
+
+export interface CheckpointEntity {
+  readonly kind: 'checkpoint';
+  readonly column: number;
 }
 
 export interface GoalEntity {
@@ -62,7 +102,8 @@ export interface PostmarkEntity {
   readonly row: number;
 }
 
-export type LevelEntity = TubeEntity | GoalEntity | PostmarkEntity;
+export type LevelEntity =
+  TubeEntity | GoalEntity | PostmarkEntity | EnemyEntity | ItemBlockEntity | CheckpointEntity;
 
 export interface LevelDefinition {
   readonly id: StageId;
@@ -93,6 +134,18 @@ export interface CompiledGoal {
   readonly poleTopRow: number;
 }
 
+export interface EnemySpawn {
+  readonly kind: EnemyKind;
+  readonly column: number;
+  readonly row: number;
+}
+
+export interface BlockItemCell {
+  readonly column: number;
+  readonly row: number;
+  readonly item: BlockItem;
+}
+
 export interface CompiledLevel {
   readonly width: number;
   readonly height: number;
@@ -104,4 +157,8 @@ export interface CompiledLevel {
   readonly tubes: readonly CompiledTube[];
   readonly goal: CompiledGoal;
   readonly doorColumn: number | null;
+  readonly enemies: readonly EnemySpawn[];
+  readonly blockItems: readonly BlockItemCell[];
+  readonly hiddenBlocks: readonly CellCoordinate[];
+  readonly checkpoint: CellCoordinate | null;
 }

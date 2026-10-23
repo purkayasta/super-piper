@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PIP_FRAME_SIZE } from '../../content/art/atlas-frames';
+import { PIP_FRAME_HEIGHT } from '../../content/art/atlas-frames';
 import { tilesetAssetId } from '../../content/manifests/asset-manifest';
 import { stageEntry } from '../../content/manifests/level-manifest';
 import {
@@ -95,7 +95,7 @@ export class TestRoomScene extends Phaser.Scene {
       row: grid.height - FALLBACK_START_ROW_FROM_BOTTOM,
     };
     this.startX = (start.column + 0.5) * TILE_SIZE;
-    this.startY = (start.row + 1) * TILE_SIZE - PIP_FRAME_SIZE / 2;
+    this.startY = (start.row + 1) * TILE_SIZE - PIP_FRAME_HEIGHT / 2;
 
     const map = this.make.tilemap({
       data: grid.tiles,

@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { mirrorGrid, rasterizeGrid, swapPalette, unknownSymbols } from './pixel-grid';
+import {
+  mirrorGrid,
+  overlayGrid,
+  padGridTop,
+  rasterizeGrid,
+  rotateGridClockwise,
+  swapPalette,
+  unknownSymbols,
+  type PixelGrid,
+} from './pixel-grid';
 import { getPixel } from './raster';
 
 const palette = { A: '#ff0000', B: '#0000ff' };
@@ -40,5 +49,38 @@ describe('mirrorGrid', () => {
 describe('unknownSymbols', () => {
   it('lists symbols missing from the palette', () => {
     expect(unknownSymbols(['AXY', '.X.'], palette)).toEqual(['X', 'Y']);
+  });
+});
+
+describe('padGridTop', () => {
+  it('adds transparent rows above the art', () => {
+    expect(padGridTop(['AB'], 3)).toEqual(['..', '..', 'AB']);
+  });
+
+  it('rejects grids taller than the target', () => {
+    expect(() => padGridTop(['A', 'B'], 1)).toThrow('taller than 1');
+  });
+});
+
+describe('overlayGrid', () => {
+  it('draws the overlay over the base, keeping the base under transparent cells', () => {
+    expect(overlayGrid(['AA', 'AA'], ['B.', '.B'])).toEqual(['BA', 'AB']);
+  });
+
+  it('rejects mismatched sizes', () => {
+    expect(() => overlayGrid(['AA'], ['A'])).toThrow('match the base grid size');
+  });
+});
+
+describe('rotateGridClockwise', () => {
+  it('turns rows into columns', () => {
+    expect(rotateGridClockwise(['AB', '..'])).toEqual(['.A', '.B']);
+  });
+
+  it('returns the original after four turns', () => {
+    const grid = ['AB.', '..B'];
+    let turned: PixelGrid = grid;
+    for (let i = 0; i < 4; i++) turned = rotateGridClockwise(turned);
+    expect(turned).toEqual(grid);
   });
 });

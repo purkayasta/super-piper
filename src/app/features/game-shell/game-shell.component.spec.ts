@@ -148,7 +148,10 @@ describe('GameShellComponent', () => {
   it('renders the HUD from hudChanged events', async () => {
     const fixture = await renderShellWithLiveUpdates();
     bridge!.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
-    bridge!.emit({ type: 'hudChanged', hud: { score: 400, coins: 2, timeLeft: 398, lives: 3 } });
+    bridge!.emit({
+      type: 'hudChanged',
+      hud: { score: 400, coins: 2, timeLeft: 398, lives: 3, power: 'small' },
+    });
     await fixture.whenStable();
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector('[data-testid="hud-score"]')?.textContent?.trim()).toBe('000400');
@@ -165,6 +168,26 @@ describe('GameShellComponent', () => {
     const banner = (fixture.nativeElement as HTMLElement).querySelector('.banner');
     expect(banner?.textContent).toContain('DELIVERED!');
     expect(banner?.textContent).toContain('SCORE 5200');
+  });
+
+  it('shows game over with the score, and Retry restarts the stage', async () => {
+    const fixture = await renderShellWithLiveUpdates();
+    const commands: unknown[] = [];
+    bridge!.onCommand((command) => commands.push(command));
+    bridge!.emit({
+      type: 'gameOver',
+      result: { stageId: '1-1', score: 3100, coins: 4, timeLeft: 120, postmarks: 0 },
+    });
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    const banner = element.querySelector('.banner');
+    expect(banner?.textContent).toContain('GAME OVER');
+    expect(banner?.textContent).toContain('SCORE 3100');
+    (element.querySelector('[data-testid="retry"]') as HTMLButtonElement).click();
+    expect(commands).toEqual([{ type: 'restart' }]);
+    bridge!.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
+    await fixture.whenStable();
+    expect(element.querySelector('.banner')).toBeNull();
   });
 
   it('hides the dev overlay when the flag is off', async () => {

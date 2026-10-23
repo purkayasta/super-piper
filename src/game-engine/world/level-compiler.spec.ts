@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { autotileGround, compileLevel } from './level-compiler';
-import type { LevelDefinition, PostmarkEntity } from './level-format';
+import type { LevelDefinition, LevelEntity, PostmarkEntity } from './level-format';
 import { validateLevel } from './level-validator';
 import { EMPTY_TILE, Tile } from './tile-ids';
 
@@ -78,6 +78,56 @@ describe('compileLevel', () => {
 
   it('refuses an invalid level', () => {
     expect(() => compileLevel(level({ entities: [] }))).toThrow('is invalid');
+  });
+});
+
+describe('compileLevel with actors and block contents', () => {
+  const rich = compileLevel(
+    level({
+      rows: rowsWith({
+        12: '.S..o.......B?X...........wdw' + '.',
+        9: '.....o' + '.'.repeat(24),
+        8: '.'.repeat(16) + 'h' + '.'.repeat(13),
+      }),
+      entities: [
+        { kind: 'tube', column: 8, topRow: 10, destination: null, snapvine: true },
+        { kind: 'goal', column: 20 },
+        ...POSTMARKS,
+        { kind: 'enemy', enemy: 'thornbug', column: 18, row: 12 },
+        { kind: 'enemy', enemy: 'flapjack', column: 10, row: 6 },
+        { kind: 'enemy', enemy: 'shellback', column: 16, row: 12 },
+        { kind: 'item-block', item: 'power', column: 13, row: 12 },
+        { kind: 'item-block', item: 'multi-coin', column: 12, row: 12 },
+        { kind: 'item-block', item: 'one-up', column: 16, row: 8 },
+        { kind: 'checkpoint', column: 17 },
+      ],
+    }),
+  );
+
+  it('lists enemy spawns by column, with Snapvines from their tubes', () => {
+    expect(rich.enemies).toEqual([
+      { kind: 'snapvine', column: 8, row: 10 },
+      { kind: 'flapjack', column: 10, row: 6 },
+      { kind: 'shellback', column: 16, row: 12 },
+      { kind: 'thornbug', column: 18, row: 12 },
+    ]);
+  });
+
+  it('keeps block contents and hidden blocks out of the collision grid', () => {
+    expect(rich.blockItems).toEqual([
+      { column: 13, row: 12, item: 'power' },
+      { column: 12, row: 12, item: 'multi-coin' },
+      { column: 16, row: 8, item: 'one-up' },
+    ]);
+    expect(rich.hiddenBlocks).toEqual([{ column: 16, row: 8 }]);
+    expect(rich.collision[8][16]).toBe(EMPTY_TILE);
+  });
+
+  it('stands the checkpoint on the ground', () => {
+    expect(rich.checkpoint).toEqual({ column: 17, row: 12 });
+    const plain = compileLevel(level());
+    expect(plain.checkpoint).toBeNull();
+    expect(plain.enemies).toEqual([]);
   });
 });
 
@@ -185,6 +235,70 @@ describe('validateLevel', () => {
     );
     expect(errors).toContain('postmark #1 overlaps goal #0 at row 8, column 28');
     expect(errors).toContain('Depot door at column 27 must be to the right of the goal');
+  });
+
+  it('checks enemy kinds and placement', () => {
+    const errors = validateLevel(
+      level({
+        entities: [
+          { kind: 'goal', column: 20 },
+          ...POSTMARKS,
+          { kind: 'enemy', enemy: 'ghost' as never, column: 3, row: 12 },
+          { kind: 'enemy', enemy: 'thornbug', column: 3, row: 13 },
+          { kind: 'enemy', enemy: 'thornbug', column: 40, row: 12 },
+        ],
+      }),
+    );
+    expect(errors).toEqual([
+      'enemy #4 has unknown enemy "ghost"',
+      'enemy #5 overlaps "#" at row 13, column 3',
+      'enemy #6 is outside the level or has no ground below it',
+    ]);
+  });
+
+  it('puts item blocks only on blocks, and multi-coin only on bricks', () => {
+    const errors = validateLevel(
+      level({
+        entities: [
+          { kind: 'goal', column: 20 },
+          ...POSTMARKS,
+          { kind: 'item-block', item: 'power', column: 2, row: 12 },
+          { kind: 'item-block', item: 'multi-coin', column: 13, row: 12 },
+          { kind: 'item-block', item: 'cake' as never, column: 12, row: 12 },
+          { kind: 'item-block', item: 'star', column: 12, row: 12 },
+        ],
+      }),
+    );
+    expect(errors).toEqual([
+      'item-block #4 must sit on a block ("?", "B" or "h"), found "."',
+      'item-block #5 puts multi-coin on "?", but only bricks "B" can hold it',
+      'item-block #6 has unknown item "cake"',
+      'item-block #7 overlaps item-block #6 at row 12, column 12',
+    ]);
+  });
+
+  it('allows one checkpoint, on the ground between the start and the goal', () => {
+    const entities = (...extra: LevelEntity[]): LevelEntity[] => [
+      { kind: 'goal', column: 20 },
+      ...POSTMARKS,
+      ...extra,
+    ];
+    expect(
+      validateLevel(level({ entities: entities({ kind: 'checkpoint', column: 16 }) })),
+    ).toEqual([]);
+    expect(
+      validateLevel(
+        level({
+          entities: entities(
+            { kind: 'checkpoint', column: 16 },
+            { kind: 'checkpoint', column: 17 },
+          ),
+        }),
+      ),
+    ).toEqual(['Level allows at most 1 checkpoint, found 2']);
+    expect(validateLevel(level({ entities: entities({ kind: 'checkpoint', column: 0 }) }))).toEqual(
+      ['Checkpoint at column 0 must lie between the start and the goal'],
+    );
   });
 
   it('checks the time limit and target time', () => {

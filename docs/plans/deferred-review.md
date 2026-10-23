@@ -33,7 +33,35 @@ Not measured or not verified (no review this phase):
 
 Deferred to later phases (scope decisions):
 
-- Big-Pip (16x32) frames, and the grow/shrink and death animations, move to Phase 4 with the Parcel Box. The small-Pip death frame is already in the atlas.
-- Falling into a pit respawns Pip at the start, and the timer stops at 0 without killing. Lives, death and the time-out are Phase 4 rules.
-- Goal-height points and the time bonus at the goal are Phase 4 scoring. The DELIVERED! banner is a stand-in for the Phase 6 results screen.
+- [x] Big-Pip (16x32) frames, and the grow/shrink and death animations, move to Phase 4 with the Parcel Box. The small-Pip death frame is already in the atlas. _Done in Phase 4: 13 big frames, a Spark look, a flicker transition for grow, shrink and Spark-up, and a death hop._
+- [x] Falling into a pit respawns Pip at the start, and the timer stops at 0 without killing. Lives, death and the time-out are Phase 4 rules. _Done in Phase 4: pits, hits and the time-out kill, each death costs a life, and the stage restarts at the checkpoint._
+- [x] Goal-height points and the time bonus at the goal are Phase 4 scoring. The DELIVERED! banner is a stand-in for the Phase 6 results screen. _Done in Phase 4: 100 to 5000 by grab height, then 50 per remaining time unit, tallied on the HUD. The banner stays until Phase 6._
 - Tubes are not enterable (Phase 7). Their destination field is already validated.
+
+## Phase 4: Enemies, power-ups, rules
+
+Review checklist from `docs/plan.md`:
+
+- [ ] A full 1-1 run feels like real SMB1 gameplay.
+- [ ] Stomps, shells, power-ups, deaths and checkpoint respawn all work.
+- [ ] HUD numbers update correctly (score, coins, time, lives, the 1UP from 100 coins, combos and the goal tally).
+- [ ] No frame drops in busy moments. **Not measured.**
+
+Not measured or not verified (no review this phase):
+
+- [ ] **Busy-moment frame rate has not been measured.** Watch the overlay's FPS, p95 and active bodies with several enemies, two parcels, debris and score pop-ups on screen. Actors are pure rectangles (only Pip has an Arcade body), so `activeBodies` is Pip plus the active actors. Budget: ≤ 40.
+- [ ] **Feel of the new numbers.** Enemy walk 30, shell 180, stomp bounce 210 (held jump bounces higher), Parcel Box slide 60, Rush Star bounce 300, parcel 240 with a 200 bounce, Snapvine rhythm 1.8s hidden / 0.8s rise / 1.4s out. All live in `actors.config.ts` and `rules.config.ts`.
+- [ ] **Stomp window.** A falling Pip stomps when his feet are within 8px of an enemy's top. Check it never feels like an unfair hit or a free stomp from the side.
+- [ ] **Shell play.** Kick from both sides, stop a moving shell with a stomp, chain kills (500, 800, 1000…), the shell bouncing off tubes and walls, and the peek and revive after 5s.
+- [ ] **Snapvine.** It should stay down while Pip stands next to or on its tube (tubes at columns 57 and 173) and be readable as it rises. It draws behind the tube tiles; check the tube rim's transparent corners don't show the plant.
+- [ ] **Power-up flow.** First `?` gives a Parcel Box when small and a Spark Stamp when big; the grow, shrink and Spark-up flicker freezes the world for 0.9s; 2s invulnerability flicker after damage; two parcels at most; crouch while big (down), standing up blocked under a low ceiling.
+- [ ] **Blocks.** Big Pip breaks plain bricks with debris; the multi-coin brick (column 72) pays for 4s, at most 10 coins; the Rush Star brick (column 101); the hidden Green Stamp at column 62, row 9 (jump straight up under it); bumping a block knocks out an enemy on top and hops an item.
+- [ ] **Death and lives.** Hit, pit and time-out deaths; the respawn at the checkpoint (column 97) keeps score, coins and collected Postmarks; GAME OVER after the last life, with Retry and Menu. Check the restart has no visible hitch.
+- [ ] **Goal.** Grab points by height (100 to 5000) and the time tally (8 units every 80ms, so the HUD updates 12.5 times a second, never per frame).
+- [ ] **Tall-tube jump.** A standing jump from against the 4-high tube at column 49 can't clear it; a run-up can. SMB1's tallest 1-1 pipe needs the same, but check it feels fair (Phase 3 layout item).
+- [ ] **Held keys through a respawn.** The stage restarts with a fresh input tracker, so a key held through death registers again after the OS key-repeat delay (about 0.5s). If that feels sluggish, keep the input tracker across restarts.
+- [ ] **Art review.** Big Pip (all 13 frames and the Spark look), Thornbug, Shellback and shell, Flapjack with wings, Snapvine, Parcel Box, Spark Stamp, Rush Star, Green Stamp, parcels, the checkpoint post and the score pop-up font. Check none of them reads as Nintendo IP.
+- [ ] **Restart memory.** Each death runs `scene.restart`. Clean-up removes every listener, including its own `once` handlers. Run `npm run e2e` and a manual 20-death session and check heap growth.
+- [ ] **e2e has not been run** this phase.
+
+Verified headlessly (not a substitute for the review): a scripted run through 1-1 in Chromium, with a temporary debug hook since reverted, exercised grow, brick break, crouch, Spark throwing (two-parcel cap), shrink with invulnerability, the Rush Star tint, the hidden Green Stamp, the checkpoint and respawn, a time-out death, GAME OVER and Retry, and the goal tally to DELIVERED!, with no console errors. It found and fixed two bugs: clean-up crashed on restart (Arcade nulls `physics.world` before scene clean-up), and an item could be collected while still emerging.

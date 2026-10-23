@@ -1,7 +1,9 @@
 import type { MovementTuning } from '../../configuration/movement.config';
+import type { PowerForm } from '../../core/game-events';
 import type { PlayerMode } from '../../entities/player/player-controller';
 
-export type PipAnimation = 'idle' | 'walk' | 'run' | 'skid' | 'jump' | 'fall' | 'goal-grab';
+export type PipAnimation =
+  'idle' | 'walk' | 'run' | 'skid' | 'jump' | 'fall' | 'goal-grab' | 'crouch' | 'throw' | 'death';
 
 const STILL_SPEED = 1;
 const RUN_THRESHOLD = 0.5;
@@ -33,4 +35,16 @@ export function strideFrameRate(vx: number, tuning: MovementTuning): number {
     (speed - tuning.walkMaxSpeed) / (tuning.runMaxSpeed - tuning.walkMaxSpeed),
   );
   return WALK_STRIDE_FPS + (RUN_STRIDE_FPS - WALK_STRIDE_FPS) * runProgress;
+}
+
+export function poseAnimation(
+  base: PipAnimation,
+  form: PowerForm,
+  crouching: boolean,
+  throwing: boolean,
+): PipAnimation {
+  if (form === 'small') return base;
+  if (crouching) return 'crouch';
+  if (throwing) return 'throw';
+  return base;
 }

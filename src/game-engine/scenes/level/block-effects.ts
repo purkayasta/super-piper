@@ -3,13 +3,19 @@ import { ItemFrame, SPARKLE_FRAMES } from '../../../content/art/atlas-frames';
 import { GAMEPLAY_ATLAS_ID, type AssetId } from '../../../content/manifests/asset-manifest';
 import {
   BLOCK_BUMP,
+  BRICK_DEBRIS,
   COIN_POP,
   COIN_SPIN_FPS,
   EFFECT_POOL_SIZE,
   SPARKLE,
 } from '../../configuration/effects.config';
 import { TILE_SIZE } from '../../configuration/physics.config';
-import { bumpOffset, coinPopOffset, effectProgress } from '../../systems/effects/effect-curves';
+import {
+  ballisticOffset,
+  bumpOffset,
+  coinPopOffset,
+  effectProgress,
+} from '../../systems/effects/effect-curves';
 import { COIN_SPIN_ANIMATION } from './gameplay-animations';
 import { tileFrameName } from './stage-assets';
 
@@ -26,12 +32,24 @@ interface TimedSlot {
   baseY: number;
 }
 
+interface DebrisSlot {
+  readonly image: Phaser.GameObjects.Image;
+  active: boolean;
+  elapsedMs: number;
+  originX: number;
+  originY: number;
+  vx: number;
+  vy: number;
+}
+
 const HALF_TILE = TILE_SIZE / 2;
+const MS_PER_SECOND = 1000;
 
 export class BlockEffects {
   private readonly bumps: BumpSlot[] = [];
   private readonly coinPops: TimedSlot[] = [];
   private readonly sparkles: TimedSlot[] = [];
+  private readonly debris: DebrisSlot[] = [];
 
   constructor(scene: Phaser.Scene, tilesetKey: AssetId, depth: number) {
     for (let i = 0; i < EFFECT_POOL_SIZE; i++) {
@@ -45,6 +63,35 @@ export class BlockEffects {
       });
       this.coinPops.push(this.timedSlot(scene, ItemFrame.coin0, depth + 1));
       this.sparkles.push(this.timedSlot(scene, ItemFrame.sparkle0, depth + 2));
+    }
+    for (let i = 0; i < BRICK_DEBRIS.poolSize; i++) {
+      this.debris.push({
+        image: scene.add
+          .image(0, 0, GAMEPLAY_ATLAS_ID, ItemFrame.brickDebris)
+          .setDepth(depth + 3)
+          .setVisible(false),
+        active: false,
+        elapsedMs: 0,
+        originX: 0,
+        originY: 0,
+        vx: 0,
+        vy: 0,
+      });
+    }
+  }
+
+  breakBrick(tile: Phaser.Tilemaps.Tile): void {
+    const centerX = tile.pixelX + HALF_TILE;
+    const centerY = tile.pixelY + HALF_TILE;
+    for (const piece of BRICK_DEBRIS.pieces) {
+      const slot = this.oldestDebris();
+      slot.active = true;
+      slot.elapsedMs = 0;
+      slot.originX = centerX + piece.offsetX;
+      slot.originY = centerY + piece.offsetY;
+      slot.vx = piece.vx;
+      slot.vy = piece.vy;
+      slot.image.setPosition(slot.originX, slot.originY).setVisible(true);
     }
   }
 
@@ -84,6 +131,31 @@ export class BlockEffects {
       this.updateCoinPop(this.coinPops[i], deltaMs);
       this.updateSparkle(this.sparkles[i], deltaMs);
     }
+    for (let i = 0; i < this.debris.length; i++) this.updateDebris(this.debris[i], deltaMs);
+  }
+
+  private updateDebris(slot: DebrisSlot, deltaMs: number): void {
+    if (!slot.active) return;
+    slot.elapsedMs += deltaMs;
+    if (slot.elapsedMs >= BRICK_DEBRIS.durationMs) {
+      slot.active = false;
+      slot.image.setVisible(false);
+      return;
+    }
+    const seconds = slot.elapsedMs / MS_PER_SECOND;
+    slot.image.setPosition(
+      Math.round(slot.originX + slot.vx * seconds),
+      Math.round(slot.originY + ballisticOffset(slot.vy, BRICK_DEBRIS.gravity, seconds)),
+    );
+  }
+
+  private oldestDebris(): DebrisSlot {
+    let chosen = this.debris[0];
+    for (const slot of this.debris) {
+      if (!slot.active) return slot;
+      if (slot.elapsedMs > chosen.elapsedMs) chosen = slot;
+    }
+    return chosen;
   }
 
   private updateBump(slot: BumpSlot, deltaMs: number): void {

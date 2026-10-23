@@ -1,9 +1,12 @@
 import {
   GOAL_POLE_HEIGHT_TILES,
   LEVEL_LEGEND,
+  type BlockItemCell,
   type CellCoordinate,
   type CompiledLevel,
   type CompiledTube,
+  type EnemySpawn,
+  type LegendMarker,
   type LevelDefinition,
 } from './level-format';
 import { findDoorColumn, firstSolidRowBelow, validateLevel } from './level-validator';
@@ -18,6 +21,9 @@ export function compileLevel(level: LevelDefinition): CompiledLevel {
   const tubes: CompiledTube[] = [];
   let goal = { column: 0, baseRow: 0, poleTopRow: 0 };
   const postmarks: CellCoordinate[] = [];
+  const enemies: EnemySpawn[] = [];
+  const blockItems: BlockItemCell[] = [];
+  let checkpoint: CellCoordinate | null = null;
   for (const entity of level.entities) {
     switch (entity.kind) {
       case 'tube': {
@@ -29,6 +35,9 @@ export function compileLevel(level: LevelDefinition): CompiledLevel {
           bottomRow,
           destination: entity.destination,
         });
+        if (entity.snapvine === true) {
+          enemies.push({ kind: 'snapvine', column: entity.column, row: entity.topRow });
+        }
         break;
       }
       case 'goal': {
@@ -40,8 +49,21 @@ export function compileLevel(level: LevelDefinition): CompiledLevel {
       case 'postmark':
         postmarks.push({ column: entity.column, row: entity.row });
         break;
+      case 'enemy':
+        enemies.push({ kind: entity.enemy, column: entity.column, row: entity.row });
+        break;
+      case 'item-block':
+        blockItems.push({ column: entity.column, row: entity.row, item: entity.item });
+        break;
+      case 'checkpoint':
+        checkpoint = {
+          column: entity.column,
+          row: firstSolidRowBelow(rows, entity.column, 0)! - 1,
+        };
+        break;
     }
   }
+  enemies.sort((a, b) => a.column - b.column || a.row - b.row);
   autotileGround(collision);
   return {
     width: rows[0].length,
@@ -54,6 +76,10 @@ export function compileLevel(level: LevelDefinition): CompiledLevel {
     tubes,
     goal,
     doorColumn: findDoorColumn(rows),
+    enemies,
+    blockItems,
+    hiddenBlocks: markers(rows, 'hidden'),
+    checkpoint,
   };
 }
 
@@ -76,7 +102,7 @@ function layerGrid(rows: readonly string[], layer: 'collision' | 'decoration'): 
   );
 }
 
-function markers(rows: readonly string[], marker: 'start' | 'coin'): CellCoordinate[] {
+function markers(rows: readonly string[], marker: LegendMarker): CellCoordinate[] {
   const found: CellCoordinate[] = [];
   rows.forEach((row, rowIndex) => {
     for (let column = 0; column < row.length; column++) {

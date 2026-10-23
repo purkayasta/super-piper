@@ -70,3 +70,19 @@
   color: #fff;
   font-size: 0.75rem;
 }
+
+.banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.banner-button {
+  padding: 0.5rem 0.75rem;
+  background: #ffd23f;
+  border: 0;
+  color: #14213d;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}

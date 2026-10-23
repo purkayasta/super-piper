@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MOVEMENT } from '../../configuration/movement.config';
-import { selectPipAnimation, strideFrameRate } from './pip-animation';
+import { poseAnimation, selectPipAnimation, strideFrameRate } from './pip-animation';
 
 describe('selectPipAnimation', () => {
   it('idles when standing still on the ground', () => {
@@ -37,5 +37,17 @@ describe('strideFrameRate', () => {
 
   it('caps the rate above run max', () => {
     expect(strideFrameRate(400, DEFAULT_MOVEMENT)).toBe(15);
+  });
+});
+
+describe('poseAnimation', () => {
+  it('keeps small Pip on the base animation', () => {
+    expect(poseAnimation('walk', 'small', true, true)).toBe('walk');
+  });
+
+  it('crouches before throwing, and throws over the base pose', () => {
+    expect(poseAnimation('idle', 'big', true, true)).toBe('crouch');
+    expect(poseAnimation('jump', 'spark', false, true)).toBe('throw');
+    expect(poseAnimation('run', 'spark', false, false)).toBe('run');
   });
 });

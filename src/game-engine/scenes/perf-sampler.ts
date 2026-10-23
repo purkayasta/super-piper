@@ -15,6 +15,7 @@ export class PerfSampler {
     private readonly scene: Phaser.Scene,
     private readonly bridge: GameBridge,
     private readonly refreshHz: number,
+    private readonly countActors: () => number = noActors,
   ) {
     this.frameStats = new FrameStats(rollingWindowCapacity(refreshHz));
   }
@@ -37,7 +38,7 @@ export class PerfSampler {
         offStepFrames: this.stepStats.offStepFrames,
         refreshHz: this.refreshHz,
         physicsHz: world.fps,
-        activeBodies: world.bodies.size,
+        activeBodies: world.bodies.size + this.countActors(),
       },
     });
   }
@@ -49,4 +50,8 @@ export class PerfSampler {
     }
     recordPhysicsStepFrame(this.scene, this.stepStats, frameMs);
   }
+}
+
+function noActors(): number {
+  return 0;
 }

@@ -1,6 +1,8 @@
+import type { BlockItem } from './level-format';
 import { Tile, isStarBlock } from './tile-ids';
 
-export type BlockHitOutcome = 'release-coin' | 'bump' | 'none';
+export type BlockHitOutcome =
+  'release-coin' | 'release-item' | 'multi-coin' | 'break' | 'bump' | 'none';
 
 const EDGE_EPSILON = 1e-6;
 
@@ -25,8 +27,18 @@ export function pickBumpedColumn(
   return null;
 }
 
-export function blockHitOutcome(tile: number): BlockHitOutcome {
+export function blockHitOutcome(
+  tile: number,
+  item: BlockItem | null = null,
+  canBreakBricks = false,
+): BlockHitOutcome {
+  if (!isStarBlock(tile) && tile !== Tile.brick) return 'none';
+  if (item === 'multi-coin') return 'multi-coin';
+  if (item !== null) return 'release-item';
   if (isStarBlock(tile)) return 'release-coin';
-  if (tile === Tile.brick) return 'bump';
-  return 'none';
+  return canBreakBricks ? 'break' : 'bump';
+}
+
+export function hiddenBlockOutcome(item: BlockItem | null): BlockHitOutcome {
+  return blockHitOutcome(Tile.starBlock, item);
 }

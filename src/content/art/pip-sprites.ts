@@ -4,7 +4,7 @@ import {
   type PixelGrid,
   type PixelPalette,
 } from '../../asset-pipeline/pixel-grid';
-import type { PipFrame, PipOutfit } from './atlas-frames';
+import type { PipBigFrame, PipLook, PipSmallFrame } from './atlas-frames';
 
 export const PIP_PALETTE: PixelPalette = {
   K: '#1a1020',
@@ -18,7 +18,7 @@ export const PIP_PALETTE: PixelPalette = {
   Y: '#ffd23a',
 };
 
-export const PIP_OUTFIT_PALETTES: Readonly<Record<PipOutfit, PixelPalette>> = {
+export const PIP_LOOK_PALETTES: Readonly<Record<PipLook, PixelPalette>> = {
   courier: PIP_PALETTE,
   forest: swapPalette(PIP_PALETTE, { C: '#3f9a4a', J: '#8a7a34', Y: '#f3e6b0', P: '#3b2e1f' }),
   midnight: swapPalette(PIP_PALETTE, {
@@ -28,6 +28,7 @@ export const PIP_OUTFIT_PALETTES: Readonly<Record<PipOutfit, PixelPalette>> = {
     P: '#1c1c2e',
     B: '#3a2a4a',
   }),
+  spark: swapPalette(PIP_PALETTE, { C: '#ffd23a', J: '#f4f0e8', Y: '#d8403a', P: '#22b3c8' }),
 };
 
 const HEAD: PixelGrid = [
@@ -68,7 +69,7 @@ const LEGS_SPRINT: PixelGrid = ['..KPPPPKKPPPPK..', '.KBBBK....KBBBK.', 'KBBK...
 
 const LEGS_SPRINT_RECOVER: PixelGrid = ['...KPPPKKPPPK...', '..KBBBK..KBBBK..', '..KBBK....KBBK..'];
 
-export const PIP_FRAME_GRIDS: Readonly<Record<PipFrame, PixelGrid>> = {
+export const PIP_SMALL_GRIDS: Readonly<Record<PipSmallFrame, PixelGrid>> = {
   idle: [
     ...HEAD,
     '...KYYYJYYYYYY..',
@@ -142,5 +143,231 @@ export const PIP_FRAME_GRIDS: Readonly<Record<PipFrame, PixelGrid>> = {
     '...KPPPKPPPK....',
     '...KBBK.KBBK....',
     '...KBBK.KBBK....',
+  ],
+};
+
+const BIG_HEAD: PixelGrid = [
+  '................',
+  '.....KKKKKK.....',
+  '....KCCCCCCKK...',
+  '...KCCWCCCCCCK..',
+  '..KCCCCCCCCCCCK.',
+  '...KHHSSSKSKK...',
+  '..KHSHSSSKSSSK..',
+  '..KHSHHSSSKSSSK.',
+  '..KHSHSSSSSSSSK.',
+  '..KHHSSSSKKKKK..',
+  '...KKSSSSSSSK...',
+  '....KKSSSSKK....',
+];
+
+const BIG_TROUSER_TOP: PixelGrid = ['...KPPPPPPPPK...', '...KPPPPPPPPK...'];
+
+const BIG_TORSO_IDLE: PixelGrid = [
+  '...KYYYYJYYYYY..',
+  '..KYYYJJJJYK.YY.',
+  '..KJJJJYJJJJK.Y.',
+  '.KJJJJJYJJJJJK..',
+  '.KJJWJJJJJWJJK..',
+  'KSJJJJJJJJJJJSK.',
+  'KSSKJJJJJJJJKSSK',
+  '.KKKJJJJJJJJKKK.',
+  ...BIG_TROUSER_TOP,
+];
+
+const BIG_WALK_TORSO_LOWER: PixelGrid = [
+  '...KJJJYJJJJK...',
+  '..KJJJJYJJJJJK..',
+  '..KJWJJJJJWJJK..',
+  '..KSJJJJJJJJSK..',
+  '..KSSJJJJJJSSK..',
+  '...KKJJJJJJKK...',
+  ...BIG_TROUSER_TOP,
+];
+
+const BIG_TORSO_TAIL_UP: PixelGrid = [
+  '.YYKYYYJYYYYK...',
+  'YY.KYJJJJJYK....',
+  ...BIG_WALK_TORSO_LOWER,
+];
+
+const BIG_TORSO_TAIL_DOWN: PixelGrid = [
+  '..YKYYYJYYYYK...',
+  'YYYKYJJJJJYK....',
+  ...BIG_WALK_TORSO_LOWER,
+];
+
+const BIG_RUN_TORSO_LOWER: PixelGrid = [
+  '...KJJJYJJJJKSK.',
+  '..KJJJJYJJJJK...',
+  '..KJWJJJJJWJK...',
+  '..KJJJJJJJJJK...',
+  '...KJJJJJJJK....',
+  '...KKJJJJJKK....',
+  ...BIG_TROUSER_TOP,
+];
+
+const BIG_RUN_TORSO_STREAM: PixelGrid = [
+  'YYYKYYYJYYYYK...',
+  '.YYKYJJJJJYKSSK.',
+  ...BIG_RUN_TORSO_LOWER,
+];
+
+const BIG_RUN_TORSO_WAVE: PixelGrid = [
+  '.YYKYYYJYYYYK...',
+  'YY.KYJJJJJYKSSK.',
+  ...BIG_RUN_TORSO_LOWER,
+];
+
+const BIG_LEGS_IDLE: PixelGrid = [
+  '...KPPPPPPPPK...',
+  '..KPPPPKKPPPPK..',
+  '..KPPPK..KPPPK..',
+  '..KPPPK..KPPPK..',
+  '..KPPPK..KPPPK..',
+  '..KBBBK..KBBBK..',
+  '..KBBBK..KBBBK..',
+  '.KBBBBK..KBBBBK.',
+  '.KBBBBBK.KBBBBBK',
+  '.KKKKKK..KKKKKK.',
+];
+
+const BIG_LEGS_STRIDE: PixelGrid = [
+  '...KPPPPPPPPK...',
+  '..KPPPPKKPPPPK..',
+  '..KPPPK..KPPPK..',
+  '.KPPPK....KPPPK.',
+  '.KPPK......KPPK.',
+  'KPPK........KPPK',
+  'KBBK........KBBK',
+  'KBBBK.......KBBK',
+  'KBBBBK.....KBBBK',
+  'KKKKKK.....KKKKK',
+];
+
+const BIG_LEGS_PASSING: PixelGrid = [
+  '...KPPPPPPPPK...',
+  '...KPPPPPPPPK...',
+  '....KPPPPPPK....',
+  '....KPPPPPPK....',
+  '.....KPPPPK.....',
+  '.....KPPPPK.....',
+  '.....KBBBBK.....',
+  '....KBBBBBK.....',
+  '....KBBBBBBK....',
+  '....KKKKKKKK....',
+];
+
+const BIG_LEGS_STEP: PixelGrid = [
+  '...KPPPPPPPPK...',
+  '..KPPPPKKPPPPK..',
+  '..KPPPK.KPPPK...',
+  '..KPPK...KPPK...',
+  '.KPPK....KPPK...',
+  '.KPPK.....KPPK..',
+  '.KBBK.....KBBK..',
+  '.KBBBK....KBBBK.',
+  '.KBBBBK...KBBBBK',
+  '.KKKKKK...KKKKKK',
+];
+
+const BIG_LEGS_TUCKED: PixelGrid = [
+  '...KPPPPPPPPPK..',
+  '..KPPPPKKPPPPPK.',
+  '..KPPPK..KPPPPK.',
+  '..KPPK....KPPPK.',
+  '.KPPK.....KPPK..',
+  '.KBBK.....KBBK..',
+  '.KBBBK...KBBBK..',
+  '.KKKKK...KKKKK..',
+  '................',
+  '................',
+];
+
+const BIG_LEGS_HANGING: PixelGrid = [
+  '...KPPPPPPPPK...',
+  '...KPPPKPPPPK...',
+  '...KPPK.KPPPK...',
+  '...KPPK.KPPK....',
+  '...KPPK.KPPK....',
+  '...KBBK.KBBK....',
+  '...KBBK.KBBK....',
+  '...KBBK.KBBK....',
+  '...KKKK.KKKK....',
+  '................',
+];
+
+const BIG_RUN_STEP_FRAME: PixelGrid = [...BIG_HEAD, ...BIG_RUN_TORSO_STREAM, ...BIG_LEGS_STEP];
+
+export const PIP_BIG_GRIDS: Readonly<Record<PipBigFrame, PixelGrid>> = {
+  'big-idle': [...BIG_HEAD, ...BIG_TORSO_IDLE, ...BIG_LEGS_IDLE],
+  'big-walk-0': [...BIG_HEAD, ...BIG_TORSO_TAIL_UP, ...BIG_LEGS_STRIDE],
+  'big-walk-1': [...BIG_HEAD, ...BIG_TORSO_TAIL_DOWN, ...BIG_LEGS_PASSING],
+  'big-walk-2': [...BIG_HEAD, ...BIG_TORSO_TAIL_UP, ...BIG_LEGS_STEP],
+  'big-run-0': [...BIG_HEAD, ...BIG_RUN_TORSO_STREAM, ...BIG_LEGS_STRIDE],
+  'big-run-1': [...BIG_HEAD, ...BIG_RUN_TORSO_WAVE, ...BIG_LEGS_PASSING],
+  'big-run-2': BIG_RUN_STEP_FRAME,
+  'big-skid': mirrorGrid(BIG_RUN_STEP_FRAME),
+  'big-jump': [
+    ...BIG_HEAD,
+    '.YYKYYYJYYYYKSSK',
+    'YY.KYJJJJJYKJSK.',
+    '...KJJJYJJJJKJK.',
+    '..KJJJJYJJJJJK..',
+    '..KJWJJJJJWJJK..',
+    '.KSJJJJJJJJJJK..',
+    '.KSKJJJJJJJJK...',
+    '..KKJJJJJJJJK...',
+    ...BIG_TROUSER_TOP,
+    ...BIG_LEGS_TUCKED,
+  ],
+  'big-fall': [
+    ...BIG_HEAD,
+    '.YYKYYYJYYYYK...',
+    'KSKKYJJJJJYKKSK.',
+    '.K.KJJJYJJJJK.K.',
+    '..KJJJJYJJJJJK..',
+    '..KJWJJJJJWJJK..',
+    '..KJJJJJJJJJJK..',
+    '...KJJJJJJJJK...',
+    '...KKJJJJJJKK...',
+    ...BIG_TROUSER_TOP,
+    ...BIG_LEGS_STEP,
+  ],
+  'big-crouch': [
+    ...Array.from({ length: 14 }, () => '................'),
+    ...BIG_HEAD,
+    '..KYYYYJYYYYK.YY',
+    '.KSJJJJYJJJJSK..',
+    '.KSSJJWJJWJJSSK.',
+    'KPPPPPPPPPPPPPPK',
+    'KBBBBPPPPPPBBBBK',
+    'KKKKKKKKKKKKKKKK',
+  ],
+  'big-goal-grab': [
+    ...BIG_HEAD,
+    '...KYYYJYYYKSSK.',
+    'YY.KYJJJJYJKSSK.',
+    '.YKJJJJYJJJK....',
+    '..KJJJJYJJJJK...',
+    '..KJWJJJJJWJK...',
+    '..KJJJJJJJJJK...',
+    '..KSJJJJJJJSK...',
+    '...KKJJJJJKK....',
+    ...BIG_TROUSER_TOP,
+    ...BIG_LEGS_HANGING,
+  ],
+  'big-throw': [
+    ...BIG_HEAD,
+    '.YYKYYYJYYYYK...',
+    'YY.KYJJJJJYK....',
+    '...KJJJYJJJJKKKK',
+    '..KJJJJYJJJJJSSK',
+    '..KJWJJJJJWJKKKK',
+    '..KSJJJJJJJJK...',
+    '..KSSJJJJJJK....',
+    '...KKJJJJJJKK...',
+    ...BIG_TROUSER_TOP,
+    ...BIG_LEGS_STEP,
   ],
 };
