@@ -1,0 +1,28 @@
+@if (hud()) {
+  <div class="frame">
+    <dl class="hud">
+      <div class="cell">
+        <dt>PIP</dt>
+        <dd data-testid="hud-score">{{ score() }}</dd>
+      </div>
+      <div class="cell">
+        <dt class="quiet">COINS</dt>
+        <dd data-testid="hud-coins" [attr.aria-label]="'Coins ' + coins()">
+          <span class="coin" aria-hidden="true"></span>×{{ coins() }}
+        </dd>
+      </div>
+      <div class="cell">
+        <dt>WORLD</dt>
+        <dd data-testid="hud-world">{{ stageLabel() }}</dd>
+      </div>
+      <div class="cell">
+        <dt>TIME</dt>
+        <dd data-testid="hud-time">{{ time() }}</dd>
+      </div>
+      <div class="cell">
+        <dt>LIVES</dt>
+        <dd data-testid="hud-lives">×{{ lives() }}</dd>
+      </div>
+    </dl>
+  </div>
+}

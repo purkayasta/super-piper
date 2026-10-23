@@ -1,4 +1,7 @@
 import Phaser from 'phaser';
+import { PIP_FRAME_SIZE } from '../../content/art/atlas-frames';
+import { tilesetAssetId } from '../../content/manifests/asset-manifest';
+import { stageEntry } from '../../content/manifests/level-manifest';
 import {
   TEST_ROOM_LEGEND,
   TEST_ROOM_ROWS,
@@ -11,18 +14,13 @@ import type { GameBridge } from '../core/game-bridge';
 import type { GameCommand } from '../core/game-events';
 import type { GameOptions } from '../core/game-factory';
 import { readBridge, readOptions, readZoom, registryChangeEvent } from '../core/registry-keys';
-import { PIP_FRAME_SIZE, PIP_TEXTURE_KEY, drawPip } from '../entities/player/pip-placeholder';
 import { Player } from '../entities/player/player';
 import { nextPixelViewLeft } from '../systems/camera/forward-camera';
 import { DomInput } from '../systems/input/dom-input';
-import {
-  EMPTY_TILE,
-  PLACEHOLDER_TILESET_KEY,
-  PLACEHOLDER_TILE_COUNT,
-  SOLID_PLACEHOLDER_TILES,
-  drawPlaceholderTileset,
-} from '../world/placeholder-tiles';
+import { autotileGround } from '../world/level-compiler';
+import { EMPTY_TILE, SOLID_TILES, TILESET_LAYOUT } from '../world/tile-ids';
 import { findSymbol, parseTileRows } from '../world/tile-grid';
+import { queueAssets } from './level/stage-assets';
 import { PerfSampler } from './perf-sampler';
 import { applyDetectedPhysicsRate } from './physics-rate';
 
@@ -48,6 +46,10 @@ export class TestRoomScene extends Phaser.Scene {
     super('TestRoomScene');
   }
 
+  preload(): void {
+    queueAssets(this, stageEntry(STAGE_ID)!.assets);
+  }
+
   create(): void {
     this.bridge = readBridge(this.registry)!;
     this.options = readOptions(this.registry)!;
@@ -56,7 +58,6 @@ export class TestRoomScene extends Phaser.Scene {
     this.tuning = DEFAULT_MOVEMENT;
     this.viewLeft = 0;
 
-    this.createTextures();
     const layer = this.buildLevel();
     this.controls = new DomInput();
     this.player = new Player(
@@ -72,7 +73,11 @@ export class TestRoomScene extends Phaser.Scene {
     this.fitCameraToLogicalView(readZoom(this.registry) ?? FALLBACK_ZOOM);
     this.listen();
 
-    this.bridge.emit({ type: 'loadComplete', stageId: STAGE_ID });
+    this.bridge.emit({
+      type: 'loadComplete',
+      stageId: STAGE_ID,
+      stageLabel: stageEntry(STAGE_ID)!.label,
+    });
   }
 
   override update(): void {
@@ -81,6 +86,7 @@ export class TestRoomScene extends Phaser.Scene {
 
   private buildLevel(): Phaser.Tilemaps.TilemapLayer {
     const grid = parseTileRows(TEST_ROOM_ROWS, TEST_ROOM_LEGEND);
+    autotileGround(grid.tiles);
     this.tiles = grid.tiles;
     this.levelWidthPx = grid.width * TILE_SIZE;
     this.levelHeightPx = grid.height * TILE_SIZE;
@@ -96,16 +102,18 @@ export class TestRoomScene extends Phaser.Scene {
       tileWidth: TILE_SIZE,
       tileHeight: TILE_SIZE,
     });
+    const tilesetKey = tilesetAssetId('overworld');
+    const { margin, spacing } = TILESET_LAYOUT;
     const tileset = map.addTilesetImage(
-      PLACEHOLDER_TILESET_KEY,
-      PLACEHOLDER_TILESET_KEY,
+      tilesetKey,
+      tilesetKey,
       TILE_SIZE,
       TILE_SIZE,
-      0,
-      0,
+      margin,
+      spacing,
     )!;
     const layer = map.createLayer(0, tileset, 0, 0)!;
-    layer.setCollision([...SOLID_PLACEHOLDER_TILES]);
+    layer.setCollision([...SOLID_TILES]);
     return layer;
   }
 
@@ -169,6 +177,7 @@ export class TestRoomScene extends Phaser.Scene {
       this.tuning.cameraLeadFraction,
     );
     this.player.clampToViewLeft(this.viewLeft);
+    this.player.updateAnimation();
     this.centerCamera();
   };
 
@@ -185,28 +194,5 @@ export class TestRoomScene extends Phaser.Scene {
   private centerCamera(): void {
     // roundPixels floors scrollX and sprite x separately, so viewLeft must stay whole.
     this.cameras.main.centerOn(this.viewLeft + LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2);
-  }
-
-  private createTextures(): void {
-    this.createPixelTexture(
-      PLACEHOLDER_TILESET_KEY,
-      TILE_SIZE * PLACEHOLDER_TILE_COUNT,
-      TILE_SIZE,
-      (context) => drawPlaceholderTileset(context, TILE_SIZE),
-    );
-    this.createPixelTexture(PIP_TEXTURE_KEY, PIP_FRAME_SIZE, PIP_FRAME_SIZE, drawPip);
-  }
-
-  private createPixelTexture(
-    key: string,
-    width: number,
-    height: number,
-    draw: (context: CanvasRenderingContext2D) => void,
-  ): void {
-    if (this.textures.exists(key)) return;
-    const texture = this.textures.createCanvas(key, width, height);
-    if (!texture) return;
-    draw(texture.getContext());
-    texture.refresh();
   }
 }

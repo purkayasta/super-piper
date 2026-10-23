@@ -58,7 +58,7 @@ export class SandboxScene extends Phaser.Scene {
     this.events.once('shutdown', cleanUp);
     this.events.once('destroy', cleanUp);
 
-    this.bridge.emit({ type: 'loadComplete', stageId: 'sandbox' });
+    this.bridge.emit({ type: 'loadComplete', stageId: 'sandbox', stageLabel: 'SANDBOX' });
   }
 
   override update(): void {

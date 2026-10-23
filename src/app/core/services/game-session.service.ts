@@ -1,6 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { GameBridge } from '../../../game-engine/core/game-bridge';
-import type { GameCommand, GameEvent, PerfSample } from '../../../game-engine/core/game-events';
+import type {
+  GameCommand,
+  GameEvent,
+  HudState,
+  PerfSample,
+  StageResult,
+} from '../../../game-engine/core/game-events';
 import { GAME_FACTORY, type GameHandle, type GameOptions } from '../game-factory.token';
 
 interface ActiveSession {
@@ -14,17 +20,29 @@ export class GameSessionService {
   private readonly loadedState = signal(false);
   private readonly pausedState = signal(false);
   private readonly perfState = signal<PerfSample | null>(null);
+  private readonly loadProgressState = signal(0);
+  private readonly stageLabelState = signal('');
+  private readonly hudState = signal<HudState | null>(null);
+  private readonly stageResultState = signal<StageResult | null>(null);
   private session: ActiveSession | null = null;
 
   readonly loaded = this.loadedState.asReadonly();
   readonly paused = this.pausedState.asReadonly();
   readonly perf = this.perfState.asReadonly();
+  readonly loadProgress = this.loadProgressState.asReadonly();
+  readonly stageLabel = this.stageLabelState.asReadonly();
+  readonly hud = this.hudState.asReadonly();
+  readonly stageResult = this.stageResultState.asReadonly();
 
   attach(host: HTMLElement, options: GameOptions): void {
     if (this.session) throw new Error('GameSessionService is already attached');
     this.loadedState.set(false);
     this.pausedState.set(false);
     this.perfState.set(null);
+    this.loadProgressState.set(0);
+    this.stageLabelState.set('');
+    this.hudState.set(null);
+    this.stageResultState.set(null);
     const bridge = new GameBridge();
     bridge.onEvent((event) => this.applyEvent(event));
     try {
@@ -53,8 +71,19 @@ export class GameSessionService {
 
   private applyEvent(event: GameEvent): void {
     switch (event.type) {
+      case 'loadProgress':
+        this.loadProgressState.set(event.progress);
+        break;
       case 'loadComplete':
+        this.loadProgressState.set(1);
+        this.stageLabelState.set(event.stageLabel);
         this.loadedState.set(true);
+        break;
+      case 'hudChanged':
+        this.hudState.set(event.hud);
+        break;
+      case 'stageComplete':
+        this.stageResultState.set(event.result);
         break;
       case 'paused':
         this.pausedState.set(true);

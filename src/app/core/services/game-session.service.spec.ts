@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import type { GameBridge } from '../../../game-engine/core/game-bridge';
-import type { PerfSample } from '../../../game-engine/core/game-events';
+import type { HudState, PerfSample, StageResult } from '../../../game-engine/core/game-events';
 import { GAME_FACTORY, type GameHandle, type GameOptions } from '../game-factory.token';
 import { GameSessionService } from './game-session.service';
 
@@ -60,8 +60,34 @@ describe('GameSessionService', () => {
   it('sets loaded when loadComplete is emitted', () => {
     service.attach(host, options);
     expect(service.loaded()).toBe(false);
-    bridge.emit({ type: 'loadComplete', stageId: 'sandbox' });
+    bridge.emit({ type: 'loadComplete', stageId: 'sandbox', stageLabel: 'SANDBOX' });
     expect(service.loaded()).toBe(true);
+  });
+
+  it('tracks load progress and the stage label', () => {
+    service.attach(host, options);
+    bridge.emit({ type: 'loadProgress', progress: 0.4 });
+    expect(service.loadProgress()).toBe(0.4);
+    bridge.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
+    expect(service.loadProgress()).toBe(1);
+    expect(service.stageLabel()).toBe('1-1');
+  });
+
+  it('mirrors HUD changes and the stage result', () => {
+    const hud: HudState = { score: 200, coins: 1, timeLeft: 399, lives: 3 };
+    const result: StageResult = {
+      stageId: '1-1',
+      score: 5000,
+      coins: 12,
+      timeLeft: 210,
+      postmarks: 2,
+    };
+    service.attach(host, options);
+    expect(service.hud()).toBeNull();
+    bridge.emit({ type: 'hudChanged', hud });
+    expect(service.hud()).toEqual(hud);
+    bridge.emit({ type: 'stageComplete', result });
+    expect(service.stageResult()).toEqual(result);
   });
 
   it('tracks paused and resumed', () => {
@@ -95,9 +121,14 @@ describe('GameSessionService', () => {
     expect(bridge.listenerCount()).toBe(0);
   });
 
-  it('resets loaded, paused and perf on a new attach', () => {
+  it('resets every mirrored value on a new attach', () => {
     service.attach(host, options);
-    bridge.emit({ type: 'loadComplete', stageId: 'sandbox' });
+    bridge.emit({ type: 'loadComplete', stageId: 'sandbox', stageLabel: 'SANDBOX' });
+    bridge.emit({ type: 'hudChanged', hud: { score: 1, coins: 1, timeLeft: 1, lives: 1 } });
+    bridge.emit({
+      type: 'stageComplete',
+      result: { stageId: 'sandbox', score: 1, coins: 1, timeLeft: 1, postmarks: 0 },
+    });
     bridge.emit({ type: 'paused' });
     bridge.emit({ type: 'perfSample', sample });
     service.detach();
@@ -105,6 +136,10 @@ describe('GameSessionService', () => {
     expect(service.loaded()).toBe(false);
     expect(service.paused()).toBe(false);
     expect(service.perf()).toBeNull();
+    expect(service.loadProgress()).toBe(0);
+    expect(service.stageLabel()).toBe('');
+    expect(service.hud()).toBeNull();
+    expect(service.stageResult()).toBeNull();
   });
 
   it('disposes the bridge and stays detached when the factory throws', () => {

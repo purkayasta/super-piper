@@ -21,6 +21,21 @@ export interface PerfSample {
   activeBodies: number;
 }
 
+export interface HudState {
+  score: number;
+  coins: number;
+  timeLeft: number;
+  lives: number;
+}
+
+export interface StageResult {
+  stageId: StageId;
+  score: number;
+  coins: number;
+  timeLeft: number;
+  postmarks: number;
+}
+
 export type GameCommand =
   | { type: 'startStage'; stageId: StageId }
   | { type: 'pause' }
@@ -32,7 +47,9 @@ export type GameCommand =
 
 export type GameEvent =
   | { type: 'loadProgress'; progress: number }
-  | { type: 'loadComplete'; stageId: StageId }
+  | { type: 'loadComplete'; stageId: StageId; stageLabel: string }
+  | { type: 'hudChanged'; hud: HudState }
+  | { type: 'stageComplete'; result: StageResult }
   | { type: 'paused' }
   | { type: 'resumed' }
   | { type: 'perfSample'; sample: PerfSample }

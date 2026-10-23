@@ -1,4 +1,15 @@
 <div #host class="host"></div>
+<app-hud [hud]="hud()" [stageLabel]="stageLabel()" />
+@if (!loaded()) {
+  <p class="loading" role="status">LOADING {{ loadPercent() }}%</p>
+}
+@if (stageResult(); as result) {
+  <section class="banner" role="status">
+    <h2 class="banner-title">DELIVERED!</h2>
+    <p class="banner-score">SCORE {{ result.score }}</p>
+    <a class="banner-link" routerLink="/">Menu</a>
+  </section>
+}
 <a class="menu-link" routerLink="/">Menu</a>
 @if (devTools) {
   <app-dev-overlay [sample]="perf()" />

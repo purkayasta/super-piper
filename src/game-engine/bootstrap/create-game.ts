@@ -4,6 +4,7 @@ import { computeZoom } from '../core/display';
 import type { GameFactory } from '../core/game-factory';
 import { readZoom, writeRegistry } from '../core/registry-keys';
 import { BootScene } from '../scenes/boot.scene';
+import { LevelScene } from '../scenes/level.scene';
 import { SandboxScene } from '../scenes/sandbox.scene';
 import { TestRoomScene } from '../scenes/test-room.scene';
 import { createGameConfig } from './game-config';
@@ -15,7 +16,12 @@ export const createGame: GameFactory = (parent, bridge, options) => {
     window.devicePixelRatio || 1,
     options.quality,
   );
-  const config = createGameConfig(parent, initialZoom, [BootScene, SandboxScene, TestRoomScene]);
+  const config = createGameConfig(parent, initialZoom, [
+    BootScene,
+    SandboxScene,
+    TestRoomScene,
+    LevelScene,
+  ]);
   config.callbacks = {
     preBoot: (preBootGame) => {
       writeRegistry(preBootGame.registry, 'bridge', bridge);

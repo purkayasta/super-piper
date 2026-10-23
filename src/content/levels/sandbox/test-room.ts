@@ -1,13 +1,13 @@
-import { EMPTY_TILE, PlaceholderTile } from '../../../game-engine/world/placeholder-tiles';
+import { EMPTY_TILE, Tile } from '../../../game-engine/world/tile-ids';
 
 export const TEST_ROOM_START_SYMBOL = 'S';
 
 export const TEST_ROOM_LEGEND: Readonly<Record<string, number>> = {
   '.': EMPTY_TILE,
   [TEST_ROOM_START_SYMBOL]: EMPTY_TILE,
-  '#': PlaceholderTile.ground,
-  B: PlaceholderTile.brick,
-  '?': PlaceholderTile.star,
+  '#': Tile.ground,
+  B: Tile.brick,
+  '?': Tile.starBlock,
 };
 
 export const TEST_ROOM_ROWS: readonly string[] = [

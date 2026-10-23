@@ -38,3 +38,8 @@
   color: #14213d;
   outline: none;
 }
+
+.dev-link {
+  color: #8ecae6;
+  font-size: 0.75rem;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_TILE } from '../../../game-engine/world/placeholder-tiles';
+import { EMPTY_TILE } from '../../../game-engine/world/tile-ids';
 import { findSymbol, parseTileRows } from '../../../game-engine/world/tile-grid';
 import { TEST_ROOM_LEGEND, TEST_ROOM_ROWS, TEST_ROOM_START_SYMBOL } from './test-room';
 
