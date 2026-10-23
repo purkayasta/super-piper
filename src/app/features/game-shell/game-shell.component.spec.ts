@@ -3,8 +3,12 @@ import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { vi } from 'vitest';
 import type { GameBridge } from '../../../game-engine/core/game-bridge';
+import { DEFAULT_BINDINGS } from '../../../game-engine/systems/input/actions';
 import { GameSessionService } from '../../core/services/game-session.service';
+import { ProgressionService } from '../../core/services/progression.service';
+import { PREFERS_REDUCED_MOTION, SAVE_STORAGE } from '../../core/services/save.service';
 import { GAME_FACTORY, type GameHandle } from '../../core/game-factory.token';
+import { MemoryStorage, stageResult } from '../../core/testing/game-fixtures.test-helpers';
 import { DEV_TOOLS_ENABLED } from '../../core/utilities/dev-tools';
 import { GameShellComponent } from './game-shell.component';
 
@@ -49,8 +53,13 @@ describe('GameShellComponent', () => {
     TestBed.configureTestingModule({
       imports: [GameShellComponent],
       providers: [
-        provideRouter([{ path: 'play/:stageId', component: GameShellComponent }]),
+        provideRouter([
+          { path: 'play/:stageId', component: GameShellComponent },
+          { path: '**', children: [] },
+        ]),
         GameSessionService,
+        { provide: SAVE_STORAGE, useValue: new MemoryStorage() },
+        { provide: PREFERS_REDUCED_MOTION, useValue: false },
         { provide: GAME_FACTORY, useValue: factory },
         { provide: DEV_TOOLS_ENABLED, useValue: false },
       ],
@@ -118,10 +127,23 @@ describe('GameShellComponent', () => {
 
     expect(factory).toHaveBeenCalledTimes(1);
     expect(factory.mock.calls[0][2]).toEqual({
-      quality: 'high',
       devTools: false,
       initialStageId: 'test-room',
+      settings: { quality: 'high', reducedMotion: false, screenShake: true },
+      bindings: DEFAULT_BINDINGS,
     });
+  });
+
+  it('starts a new game when the route moves to another stage', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/play/test-room', GameShellComponent);
+    await harness.fixture.whenStable();
+    vi.mocked(window.requestAnimationFrame).mockRestore();
+    await harness.navigateByUrl('/play/1-1', GameShellComponent);
+    await harness.fixture.whenStable();
+    expect(factory).toHaveBeenCalledTimes(2);
+    expect(handle.destroy).toHaveBeenCalledTimes(1);
+    expect(factory.mock.calls[1][2]).toMatchObject({ initialStageId: '1-1' });
   });
 
   it('shows the dev overlay and passes devTools only when the flag is on', async () => {
@@ -158,36 +180,82 @@ describe('GameShellComponent', () => {
     expect(element.querySelector('[data-testid="hud-world"]')?.textContent?.trim()).toBe('1-1');
   });
 
-  it('shows the delivered banner when the stage is complete', async () => {
+  it('records a clear once and shows the results over the finished stage', async () => {
+    const recordClear = vi.spyOn(TestBed.inject(ProgressionService), 'recordClear');
     const fixture = await renderShellWithLiveUpdates();
-    bridge!.emit({
-      type: 'stageComplete',
-      result: { stageId: '1-1', score: 5200, coins: 9, timeLeft: 200, postmarks: 1 },
-    });
+    bridge!.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
+    bridge!.emit({ type: 'stageComplete', result: stageResult({ score: 5200 }) });
     await fixture.whenStable();
-    const banner = (fixture.nativeElement as HTMLElement).querySelector('.banner');
-    expect(banner?.textContent).toContain('DELIVERED!');
-    expect(banner?.textContent).toContain('SCORE 5200');
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('app-results')?.textContent).toContain('DELIVERED!');
+    expect(element.querySelector('[data-testid="results-score"]')?.textContent).toContain('005200');
+    expect(recordClear).toHaveBeenCalledTimes(1);
+    expect(handle.destroy).not.toHaveBeenCalled();
+    expect(element.querySelector('[data-testid="pause"]')).toBeNull();
+  });
+
+  it('replays from the results with a restart', async () => {
+    const fixture = await renderShellWithLiveUpdates();
+    const commands: unknown[] = [];
+    bridge!.onCommand((command) => commands.push(command));
+    bridge!.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
+    bridge!.emit({ type: 'stageComplete', result: stageResult() });
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('[data-testid="replay"]')!.click();
+    expect(commands).toEqual([{ type: 'restart' }]);
+    await fixture.whenStable();
+    expect(element.querySelector('app-results')).toBeNull();
+  });
+
+  it('pauses from the pause button and resumes the same game', async () => {
+    const fixture = await renderShellWithLiveUpdates();
+    const commands: unknown[] = [];
+    bridge!.onCommand((command) => commands.push(command));
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('[data-testid="pause"]')).toBeNull();
+    bridge!.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
+    await fixture.whenStable();
+    element.querySelector<HTMLButtonElement>('[data-testid="pause"]')!.click();
+    expect(commands).toEqual([{ type: 'pause' }]);
+    expect(element.querySelector('app-pause-menu')).toBeNull();
+    bridge!.emit({ type: 'paused' });
+    await fixture.whenStable();
+    element.querySelector<HTMLButtonElement>('[data-testid="resume"]')!.click();
+    bridge!.emit({ type: 'resumed' });
+    await fixture.whenStable();
+    expect(commands).toEqual([{ type: 'pause' }, { type: 'resume' }]);
+    expect(element.querySelector('app-pause-menu')).toBeNull();
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(handle.destroy).not.toHaveBeenCalled();
+  });
+
+  it('pauses when the tab is hidden', async () => {
+    await renderShellWithLiveUpdates();
+    const commands: unknown[] = [];
+    bridge!.onCommand((command) => commands.push(command));
+    bridge!.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(commands).toEqual([{ type: 'pause' }]);
   });
 
   it('shows game over with the score, and Retry restarts the stage', async () => {
     const fixture = await renderShellWithLiveUpdates();
     const commands: unknown[] = [];
     bridge!.onCommand((command) => commands.push(command));
-    bridge!.emit({
-      type: 'gameOver',
-      result: { stageId: '1-1', score: 3100, coins: 4, timeLeft: 120, postmarks: 0 },
-    });
+    bridge!.emit({ type: 'gameOver', result: stageResult({ score: 3100 }) });
     await fixture.whenStable();
     const element = fixture.nativeElement as HTMLElement;
-    const banner = element.querySelector('.banner');
-    expect(banner?.textContent).toContain('GAME OVER');
-    expect(banner?.textContent).toContain('SCORE 3100');
+    const dialog = element.querySelector('[aria-labelledby="game-over-title"]');
+    expect(dialog?.textContent).toContain('GAME OVER');
+    expect(dialog?.textContent).toContain('SCORE 3100');
     (element.querySelector('[data-testid="retry"]') as HTMLButtonElement).click();
     expect(commands).toEqual([{ type: 'restart' }]);
     bridge!.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
     await fixture.whenStable();
-    expect(element.querySelector('.banner')).toBeNull();
+    expect(element.querySelector('[aria-labelledby="game-over-title"]')).toBeNull();
   });
 
   it('hides the dev overlay when the flag is off', async () => {

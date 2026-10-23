@@ -1,9 +1,32 @@
-<main class="menu">
-  <h1 class="title">PIP'S DELIVERY</h1>
-  <a class="play" [routerLink]="['/play', firstStageId]" (click)="confirmSelection()">Play</a>
-  @if (devTools) {
-    <a class="dev-link" [routerLink]="['/play', testRoomStageId]" (click)="confirmSelection()">
-      Test room
-    </a>
+<main class="screen menu" appMenuNav>
+  <header class="hero">
+    <p class="kicker">A COURIER'S ADVENTURE</p>
+    <h1 class="title">PIP'S DELIVERY</h1>
+    <div class="parcel" aria-hidden="true"></div>
+  </header>
+
+  @if (noticeText(); as text) {
+    <div class="panel notice" role="alert">
+      <p>{{ text }}</p>
+      <button type="button" class="ui-button" (click)="dismissNotice()">OK</button>
+    </div>
   }
+
+  <nav class="actions" aria-label="Main menu">
+    <a class="ui-button primary" data-nav-default routerLink="/map" (click)="confirmSelection()">
+      Play
+    </a>
+    <a class="ui-button" routerLink="/settings" (click)="confirmSelection()">Settings</a>
+    @if (devTools) {
+      <a class="ui-button" [routerLink]="['/play', testRoomStageId]" (click)="confirmSelection()">
+        Test room
+      </a>
+    }
+  </nav>
+
+  <footer class="status" data-testid="menu-status">
+    <span>{{ rank().rank.title }}</span>
+    <span><span class="star" aria-hidden="true"></span>{{ stars() }}/{{ maxStars }}</span>
+    <span><span class="coin" aria-hidden="true"></span>{{ coins() }}</span>
+  </footer>
 </main>

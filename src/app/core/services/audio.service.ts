@@ -1,37 +1,33 @@
 import { DOCUMENT } from '@angular/common';
-import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, effect, inject } from '@angular/core';
 import { MENU_SOUND_IDS } from '../../../content/audio/stage-sounds';
 import { Music, type SfxId } from '../../../content/audio/sound-ids';
 import { browserAudioEnvironment } from '../../../game-engine/audio/browser-audio-environment';
 import { SILENT_AUDIO, type GameAudio } from '../../../game-engine/audio/game-audio';
-import {
-  DEFAULT_VOLUMES,
-  sanitizeVolumes,
-  withVolume,
-  type AudioVolumes,
-  type VolumeChannel,
-} from '../../../game-engine/audio/volume';
+import type { AudioVolumes, VolumeChannel } from '../../../game-engine/audio/volume';
 import { WebAudioEngine } from '../../../game-engine/audio/web-audio-engine';
+import { SettingsService } from './settings.service';
 
 @Injectable({ providedIn: 'root' })
 export class AudioService {
   private readonly engine = createEngine(inject(DOCUMENT).defaultView);
-  private readonly volumesState = signal<AudioVolumes>(DEFAULT_VOLUMES);
+  private readonly settings = inject(SettingsService);
 
-  readonly volumes = this.volumesState.asReadonly();
+  readonly volumes = this.settings.volumes;
   readonly gameAudio: GameAudio = this.engine ?? SILENT_AUDIO;
 
   constructor() {
-    this.engine?.setVolumes(this.volumesState());
+    this.engine?.setVolumes(this.volumes());
+    effect(() => this.engine?.setVolumes(this.volumes()));
     inject(DestroyRef).onDestroy(() => this.engine?.dispose());
   }
 
   setVolume(channel: VolumeChannel, value: number): void {
-    this.applyVolumes(withVolume(this.volumesState(), channel, value));
+    this.settings.update({ volumes: { [channel]: value } });
   }
 
   setVolumes(volumes: Partial<AudioVolumes>): void {
-    this.applyVolumes(sanitizeVolumes({ ...this.volumesState(), ...volumes }));
+    this.settings.update({ volumes });
   }
 
   playMenuMusic(): void {
@@ -45,11 +41,6 @@ export class AudioService {
 
   stopAll(): void {
     this.gameAudio.stopAll();
-  }
-
-  private applyVolumes(volumes: AudioVolumes): void {
-    this.volumesState.set(volumes);
-    this.engine?.setVolumes(volumes);
   }
 }
 

@@ -1,12 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import type { GameBridge } from '../../../game-engine/core/game-bridge';
-import type { HudState, PerfSample, StageResult } from '../../../game-engine/core/game-events';
-import { GAME_FACTORY, type GameHandle, type GameOptions } from '../game-factory.token';
+import type { HudState, PerfSample } from '../../../game-engine/core/game-events';
+import { GAME_FACTORY, type GameHandle } from '../game-factory.token';
+import { gameOptions, stageResult } from '../testing/game-fixtures.test-helpers';
 import { AudioService } from './audio.service';
 import { GameSessionService } from './game-session.service';
 
-const options: GameOptions = { quality: 'high', devTools: true, initialStageId: 'test-room' };
+const options = gameOptions();
 
 const sample: PerfSample = {
   fps: 60,
@@ -84,13 +85,7 @@ describe('GameSessionService', () => {
 
   it('mirrors HUD changes and the stage result', () => {
     const hud: HudState = { score: 200, coins: 1, timeLeft: 399, lives: 3, power: 'small' };
-    const result: StageResult = {
-      stageId: '1-1',
-      score: 5000,
-      coins: 12,
-      timeLeft: 210,
-      postmarks: 2,
-    };
+    const result = stageResult({ score: 5000 });
     service.attach(host, options);
     expect(service.hud()).toBeNull();
     bridge.emit({ type: 'hudChanged', hud });
@@ -139,11 +134,11 @@ describe('GameSessionService', () => {
     });
     bridge.emit({
       type: 'stageComplete',
-      result: { stageId: 'sandbox', score: 1, coins: 1, timeLeft: 1, postmarks: 0 },
+      result: stageResult({ stageId: 'sandbox' }),
     });
     bridge.emit({
       type: 'gameOver',
-      result: { stageId: 'sandbox', score: 1, coins: 1, timeLeft: 1, postmarks: 0 },
+      result: stageResult({ stageId: 'sandbox' }),
     });
     bridge.emit({ type: 'paused' });
     bridge.emit({ type: 'perfSample', sample });
@@ -160,7 +155,7 @@ describe('GameSessionService', () => {
   });
 
   it('shows game over until the stage loads again', () => {
-    const result: StageResult = { stageId: '1-1', score: 900, coins: 3, timeLeft: 0, postmarks: 0 };
+    const result = stageResult({ score: 900 });
     service.attach(host, options);
     bridge.emit({ type: 'playerDied', stageId: '1-1', livesLeft: 0 });
     expect(service.gameOver()).toBeNull();
@@ -187,5 +182,89 @@ describe('GameSessionService', () => {
     service.attach(host, options);
     expect(factory).toHaveBeenCalledTimes(2);
     expect(bridge).not.toBe(firstBridge);
+  });
+
+  it('reports a loading error until the stage loads', () => {
+    service.attach(host, options);
+    bridge.emit({ type: 'recoverableError', message: 'Unknown stage "9-9"' });
+    expect(service.loadError()).toBe('Unknown stage "9-9"');
+    bridge.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
+    bridge.emit({ type: 'recoverableError', message: 'later' });
+    expect(service.loadError()).toBe('Unknown stage "9-9"');
+    service.detach();
+    service.attach(host, options);
+    expect(service.loadError()).toBeNull();
+  });
+
+  describe('pausing', () => {
+    let commands: unknown[];
+
+    beforeEach(() => {
+      service.attach(host, options);
+      commands = [];
+      bridge.onCommand((command) => commands.push(command));
+    });
+
+    function load(): void {
+      bridge.emit({ type: 'loadComplete', stageId: '1-1', stageLabel: '1-1' });
+    }
+
+    it('pauses a loaded stage on request, and when the stage asks', () => {
+      load();
+      service.requestPause();
+      expect(commands).toEqual([{ type: 'pause' }]);
+      bridge.emit({ type: 'paused' });
+      bridge.emit({ type: 'pauseRequested' });
+      expect(commands).toEqual([{ type: 'pause' }]);
+      service.resume();
+      bridge.emit({ type: 'resumed' });
+      bridge.emit({ type: 'pauseRequested' });
+      expect(commands).toEqual([{ type: 'pause' }, { type: 'resume' }, { type: 'pause' }]);
+    });
+
+    it('remembers a pause asked for during loading and applies it after load', async () => {
+      service.requestPause();
+      expect(commands).toEqual([]);
+      load();
+      expect(commands).toEqual([]);
+      await Promise.resolve();
+      expect(commands).toEqual([{ type: 'pause' }]);
+    });
+
+    it('drops a pending pause when the player resumes or restarts first', async () => {
+      service.requestPause();
+      service.resume();
+      load();
+      await Promise.resolve();
+      expect(commands).toEqual([]);
+    });
+
+    it('never pauses over the results or game over', () => {
+      load();
+      bridge.emit({ type: 'stageComplete', result: stageResult() });
+      service.requestPause();
+      expect(service.canPause()).toBe(false);
+      load();
+      bridge.emit({ type: 'gameOver', result: stageResult() });
+      service.requestPause();
+      expect(commands).toEqual([]);
+    });
+
+    it('only resumes a paused game', () => {
+      load();
+      service.resume();
+      expect(commands).toEqual([]);
+    });
+
+    it('restarts, and clears the results and pause once the stage loads again', () => {
+      load();
+      bridge.emit({ type: 'paused' });
+      service.restart();
+      expect(commands).toEqual([{ type: 'restart' }]);
+      bridge.emit({ type: 'stageComplete', result: stageResult() });
+      load();
+      expect(service.paused()).toBe(false);
+      expect(service.stageResult()).toBeNull();
+    });
   });
 });

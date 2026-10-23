@@ -1,6 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { HudState } from '../../../../game-engine/core/game-events';
-import { COIN_DIGITS, SCORE_DIGITS, TIME_DIGITS, padCounter } from './hud-format';
+import {
+  COIN_DIGITS,
+  SCORE_DIGITS,
+  TIME_DIGITS,
+  padCounter,
+} from '../../../shared/ui/counter-format';
 
 @Component({
   selector: 'app-hud',

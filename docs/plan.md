@@ -13,7 +13,7 @@ Each phase has its own detailed task plan in [`plans/`](plans/). Detailed plans 
 | 3   | Art pipeline + World 1-1                             | [`plans/phase-3-art-and-1-1.md`](plans/phase-3-art-and-1-1.md)             | Built, review deferred |
 | 4   | Enemies, power-ups, rules                            | [`plans/phase-4-enemies-and-rules.md`](plans/phase-4-enemies-and-rules.md) | Built, review deferred |
 | 5   | Sound and music                                      | [`plans/phase-5-sound-and-music.md`](plans/phase-5-sound-and-music.md)     | Built, review deferred |
-| 6   | Angular shell + saves                                | written after Phase 5 review                                               | —                      |
+| 6   | Angular shell + saves                                | [`plans/phase-6-shell-and-saves.md`](plans/phase-6-shell-and-saves.md)     | Built, review deferred |
 | 7   | Rest of World 1                                      | written after Phase 6 review                                               | —                      |
 | 8   | Mobile, performance, polish, **GitHub Pages deploy** | written after Phase 7 review                                               | —                      |
 
@@ -156,6 +156,16 @@ Phaser chunk: 1.11 MB raw, 243 kB transfer (arcade-only build). Initial bundle: 
 - **Settings:** volumes, key rebinding, quality, reduced motion and screen shake
 - **Saves:** the save service with validation, migration and backup recovery
 - **Progression:** stars (finish, Postmarks, target time), best score and time, coins balance, XP and rank
+
+**Scope notes (built without a review):**
+
+- Routes: `#/` menu, `#/map`, `#/play/:stageId`, `#/settings`. Achievements and the shop stay in Phase 7.
+- The world map reads World 1 from `content/manifests/world-manifest.ts`. 1-2 to 1-4 show as locked, then "SOON" once the stage before is cleared, until Phase 7 adds their levels to the level manifest.
+- Menus work with the mouse, arrow keys and a gamepad (d-pad/stick, A, B, Start). Pause comes from the pause key, gamepad Start, a pause button or hiding the tab; the overlay has Resume, Restart, World map and music/effects volume.
+- Settings apply at the next stage load; only volumes change live. Low quality drops the bushes layer, sparkles, half the brick debris and cloud drift. Screen shake waits for Phase 7's boss.
+- Saves: `pip.save` (schema 1) with `pip.save.backup` as the last good save; corrupt saves recover from the backup, then start fresh, with a notice on the menu.
+- Initial bundle 243 kB raw (67 kB transfer); Phaser stays lazy.
+- Open items for the combined review are in [`plans/deferred-review.md`](plans/deferred-review.md).
 
 **Review checklist:**
 

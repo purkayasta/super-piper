@@ -1,0 +1,93 @@
+<main class="screen map-screen" appMenuNav (menuBack)="back()">
+  <header class="top">
+    <a class="ui-button" routerLink="/">Back</a>
+    <div class="heading">
+      <h1 class="screen-title">{{ world.label }}</h1>
+      <p class="subtitle">{{ world.title }}</p>
+    </div>
+    <div class="rank" data-testid="map-rank">
+      <span>{{ rank().rank.title }}</span>
+      <span
+        class="rank-bar"
+        role="progressbar"
+        aria-label="Progress to the next rank"
+        [attr.aria-valuenow]="rankPercent()"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        ><span [style.width.%]="rankPercent()"></span
+      ></span>
+      <span class="coins"><span class="coin" aria-hidden="true"></span>{{ coins() }}</span>
+    </div>
+  </header>
+
+  <section class="map" aria-label="Stages">
+    <svg class="route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <polyline [attr.points]="pathPoints" />
+    </svg>
+    @for (node of nodes(); track node.stage.stageId; let index = $index) {
+      <button
+        type="button"
+        class="node {{ node.stage.theme }} {{ node.status.availability }}"
+        [class.selected]="index === selectedIndex()"
+        [style.left.%]="node.stage.mapX"
+        [style.top.%]="node.stage.mapY"
+        [attr.data-nav-default]="index === selectedIndex() ? '' : null"
+        [attr.aria-label]="
+          node.stage.stageId + ' ' + node.stage.title + ', ' + node.status.availability
+        "
+        [attr.data-testid]="'node-' + node.stage.stageId"
+        (focus)="select(index)"
+        (click)="activate(index)"
+      >
+        <span class="node-label">{{ node.stage.stageId }}</span>
+        @if (node.status.availability === 'open') {
+          <app-star-row [stars]="node.status.record.stars" />
+        } @else {
+          <span class="node-state">{{
+            node.status.availability === 'locked' ? 'LOCKED' : 'SOON'
+          }}</span>
+        }
+      </button>
+    }
+  </section>
+
+  @if (selected(); as node) {
+    <section class="panel details" aria-live="polite" data-testid="stage-details">
+      <h2>
+        {{ node.stage.stageId }} <span class="stage-title">{{ node.stage.title }}</span>
+      </h2>
+      @switch (node.status.availability) {
+        @case ('open') {
+          <ul class="goals">
+            <li [class.done]="node.status.record.stars.finish">Make the delivery</li>
+            <li [class.done]="node.status.record.stars.postmarks">
+              Find every Postmark ({{ node.status.record.postmarksFound.length }}/3)
+            </li>
+            <li [class.done]="node.status.record.stars.time">
+              Use {{ time(node.targetTime) }} time or less
+            </li>
+          </ul>
+          <dl class="bests">
+            <div>
+              <dt>BEST</dt>
+              <dd>{{ score(node.status.record.bestScore) }}</dd>
+            </div>
+            <div>
+              <dt>TIME</dt>
+              <dd>{{ time(node.status.record.bestTime) }}</dd>
+            </div>
+          </dl>
+          <button type="button" class="ui-button primary" data-testid="play-stage" (click)="play()">
+            Deliver!
+          </button>
+        }
+        @case ('locked') {
+          <p class="note">Locked. Clear the stage before it to open this route.</p>
+        }
+        @case ('coming-soon') {
+          <p class="note">Coming soon. This route is still being paved.</p>
+        }
+      }
+    </section>
+  }
+</main>

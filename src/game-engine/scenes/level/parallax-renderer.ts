@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import {
   SCENERY_BY_THEME,
   SCENERY_RESOLUTIONS,
+  type SceneryLayerId,
   type SceneryLayerSpec,
   type SceneryResolution,
   type SceneryTheme,
@@ -26,11 +27,13 @@ export class ParallaxRenderer {
     theme: SceneryTheme,
     resolution: SceneryResolution,
     baseDepth: number,
+    skippedLayers: readonly SceneryLayerId[],
+    private readonly drifting: boolean,
   ) {
     const scale = 1 / SCENERY_RESOLUTIONS[resolution];
     SCENERY_BY_THEME[theme].forEach((spec, index) => {
       const key = sceneryAssetId(theme, spec.id, resolution);
-      if (!scene.textures.exists(key)) return;
+      if (skippedLayers.includes(spec.id) || !scene.textures.exists(key)) return;
       const count = spec.scrollFactor === 0 ? 1 : stripCopiesNeeded(spec.stripWidth, LOGICAL_WIDTH);
       const copies = Array.from({ length: count }, () =>
         scene.add
@@ -48,7 +51,7 @@ export class ParallaxRenderer {
     for (let index = 0; index < this.layers.length; index++) {
       const layer = this.layers[index];
       const { spec, copies } = layer;
-      if (spec.driftSpeed !== 0) {
+      if (this.drifting && spec.driftSpeed !== 0) {
         layer.drift = advanceDrift(layer.drift, spec.driftSpeed, dtSeconds, spec.stripWidth);
       }
       const firstX =

@@ -1,0 +1,122 @@
+<main class="screen settings-screen" appMenuNav (menuBack)="back()">
+  <header class="top">
+    <a class="ui-button" routerLink="/">Back</a>
+    <h1 class="screen-title">SETTINGS</h1>
+  </header>
+
+  <section class="panel group" aria-labelledby="audio-heading">
+    <h2 id="audio-heading">AUDIO</h2>
+    @for (entry of volumeChannels; track entry.channel) {
+      <app-volume-slider
+        [label]="entry.label"
+        [value]="settings().volumes[entry.channel]"
+        (changed)="setVolume(entry.channel, $event)"
+        (committed)="previewVolume(entry.channel)"
+      />
+    }
+  </section>
+
+  <section class="panel group" aria-labelledby="video-heading">
+    <h2 id="video-heading">QUALITY</h2>
+    <div class="choices" role="group" aria-labelledby="video-heading">
+      @for (level of qualityLevels; track level) {
+        <button
+          type="button"
+          class="ui-button ui-choice"
+          [attr.aria-pressed]="settings().quality === level"
+          [attr.data-testid]="'quality-' + level"
+          (click)="setQuality(level)"
+        >
+          {{ level }}
+        </button>
+      }
+    </div>
+    <p class="note">{{ qualityNotes[settings().quality] }} Applies from the next stage.</p>
+  </section>
+
+  <section class="panel group" aria-labelledby="motion-heading">
+    <h2 id="motion-heading">MOTION</h2>
+    <div class="choices">
+      <button
+        type="button"
+        class="ui-button ui-choice"
+        data-testid="reduced-motion"
+        [attr.aria-pressed]="settings().reducedMotion"
+        (click)="toggleReducedMotion()"
+      >
+        Reduced motion: {{ settings().reducedMotion ? 'On' : 'Off' }}
+      </button>
+      <button
+        type="button"
+        class="ui-button ui-choice"
+        data-testid="screen-shake"
+        [attr.aria-pressed]="settings().screenShake"
+        (click)="toggleScreenShake()"
+      >
+        Screen shake: {{ settings().screenShake ? 'On' : 'Off' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="panel group" aria-labelledby="controls-heading">
+    <h2 id="controls-heading">CONTROLS</h2>
+    <ul class="bindings">
+      @for (action of actions; track action) {
+        <li>
+          <span>{{ actionLabels[action] }}</span>
+          <span class="keys" [attr.data-testid]="'keys-' + action">
+            @for (code of settings().bindings[action]; track code) {
+              <kbd>{{ keyLabel(code) }}</kbd>
+            }
+          </span>
+          <button
+            type="button"
+            class="ui-button"
+            [attr.data-testid]="'rebind-' + action"
+            [attr.aria-label]="'Change the key for ' + actionLabels[action]"
+            (click)="startCapture(action)"
+          >
+            {{ capturing() === action ? 'Press a key' : 'Change' }}
+          </button>
+        </li>
+      }
+    </ul>
+    <p class="note" aria-live="polite">
+      @if (capturing()) {
+        Press the new key. Esc cancels.
+      } @else {
+        Gamepad: stick or d-pad to move, A jump, X run, Start pause.
+      }
+    </p>
+    <button type="button" class="ui-button" data-testid="reset-keys" (click)="resetBindings()">
+      Reset keys
+    </button>
+  </section>
+
+  <section class="panel group" aria-labelledby="data-heading">
+    <h2 id="data-heading">SAVE DATA</h2>
+    @if (confirmingErase()) {
+      <p class="note">Erase every stage record, star, coin and rank? Settings stay.</p>
+      <div class="choices">
+        <button
+          type="button"
+          class="ui-button primary"
+          data-testid="confirm-erase"
+          (click)="erase()"
+        >
+          Erase
+        </button>
+        <button type="button" class="ui-button" data-nav-default (click)="cancelErase()">
+          Keep
+        </button>
+      </div>
+    } @else {
+      <button type="button" class="ui-button" data-testid="erase" (click)="askErase()">
+        Erase progress
+      </button>
+      @if (erased()) {
+        <p class="note" role="status">Progress erased.</p>
+      }
+    }
+  </section>
+</main>

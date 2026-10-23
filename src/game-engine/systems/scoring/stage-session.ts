@@ -5,11 +5,14 @@ export interface RunTotals {
   readonly score: number;
   readonly coins: number;
   readonly lives: number;
+  readonly coinsCollected: number;
 }
 
 export class StageSession {
   private readonly state: HudState;
   private postmarkCount = 0;
+  private coinTotal: number;
+  private unitsUsed = 0;
   private clockRunning = true;
   private unitElapsedMs = 0;
   private dirty = true;
@@ -28,6 +31,7 @@ export class StageSession {
       power: 'small',
     };
     this.postmarkCount = postmarks;
+    this.coinTotal = totals.coinsCollected;
   }
 
   get hud(): Readonly<HudState> {
@@ -38,11 +42,20 @@ export class StageSession {
     return this.postmarkCount;
   }
 
+  get coinsCollected(): number {
+    return this.coinTotal;
+  }
+
+  get timeUsed(): number {
+    return this.unitsUsed;
+  }
+
   get timeUp(): boolean {
     return this.state.timeLeft === 0;
   }
 
   addCoin(): void {
+    this.coinTotal++;
     this.state.coins++;
     this.state.score += this.rules.coinPoints;
     if (this.state.coins >= this.rules.coinsPerExtraLife) {
@@ -87,6 +100,7 @@ export class StageSession {
     while (this.unitElapsedMs >= this.rules.timeUnitMs && this.state.timeLeft > 0) {
       this.unitElapsedMs -= this.rules.timeUnitMs;
       this.state.timeLeft--;
+      this.unitsUsed++;
       this.dirty = true;
     }
   }
@@ -105,7 +119,12 @@ export class StageSession {
   }
 
   totals(): RunTotals {
-    return { score: this.state.score, coins: this.state.coins, lives: this.state.lives };
+    return {
+      score: this.state.score,
+      coins: this.state.coins,
+      lives: this.state.lives,
+      coinsCollected: this.coinTotal,
+    };
   }
 
   consumeChange(): boolean {

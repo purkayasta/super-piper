@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_BINDINGS } from './actions';
 import { DomInput } from './dom-input';
 
 function press(type: 'keydown' | 'keyup', code: string, init: KeyboardEventInit = {}) {
@@ -58,6 +59,7 @@ describe('DomInput', () => {
     ['input', () => document.createElement('input')],
     ['textarea', () => document.createElement('textarea')],
     ['select', () => document.createElement('select')],
+    ['button', () => document.createElement('button')],
     [
       'contenteditable',
       () => {
@@ -90,6 +92,62 @@ describe('DomInput', () => {
     field.dispatchEvent(new KeyboardEvent('keyup', { code: 'ArrowRight', bubbles: true }));
     field.remove();
     expect(input.resolve().right).toBe(false);
+  });
+
+  it('uses the bindings it is given', () => {
+    input = new DomInput({ ...DEFAULT_BINDINGS, jump: ['KeyP'] });
+    input.attach(window);
+    press('keydown', 'Space');
+    expect(input.resolve().jump).toBe(false);
+    press('keydown', 'KeyP');
+    expect(input.resolve().jump).toBe(true);
+    expect(press('keydown', 'KeyP').defaultPrevented).toBe(true);
+  });
+
+  it('reports a pause press once until the key is released', () => {
+    input = new DomInput();
+    input.attach(window);
+    expect(input.consumePausePress()).toBe(false);
+    press('keydown', 'Escape');
+    expect(input.consumePausePress()).toBe(true);
+    expect(input.consumePausePress()).toBe(false);
+    press('keyup', 'Escape');
+    expect(input.consumePausePress()).toBe(false);
+    press('keydown', 'Enter');
+    expect(input.consumePausePress()).toBe(true);
+  });
+
+  it('ignores a pause key held from before the game was paused', () => {
+    input = new DomInput();
+    input.attach(window);
+    input.consumePausePress();
+    input.releaseAll();
+    press('keydown', 'Escape');
+    expect(input.consumePausePress()).toBe(false);
+    press('keyup', 'Escape');
+    input.consumePausePress();
+    press('keydown', 'Escape');
+    expect(input.consumePausePress()).toBe(true);
+  });
+
+  it('treats a key held since the stage started as already handled', () => {
+    input = new DomInput();
+    input.attach(window);
+    press('keydown', 'Escape');
+    expect(input.consumePausePress()).toBe(false);
+  });
+
+  it('pauses on the gamepad Start button', () => {
+    const getGamepads = vi.fn(() => [fakeGamepad(0, [])]);
+    Object.defineProperty(navigator, 'getGamepads', { value: getGamepads, configurable: true });
+    input = new DomInput();
+    input.attach(window);
+    input.pollGamepad();
+    input.consumePausePress();
+    getGamepads.mockReturnValue([fakeGamepad(0, [9])]);
+    input.pollGamepad();
+    expect(input.consumePausePress()).toBe(true);
+    delete (navigator as unknown as Record<string, unknown>)['getGamepads'];
   });
 
   it('releases everything on window blur', () => {

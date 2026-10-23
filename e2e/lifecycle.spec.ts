@@ -27,13 +27,23 @@ test.afterEach(() => {
 });
 
 const playLink = (page: Page) => page.getByRole('link', { name: 'Play' });
-const menuLink = (page: Page) => page.getByRole('link', { name: 'Menu' });
+const deliverButton = (page: Page) => page.getByTestId('play-stage');
+const pauseButton = (page: Page) => page.getByTestId('pause');
+const quitButton = (page: Page) => page.getByTestId('quit');
+const backLink = (page: Page) => page.getByRole('link', { name: 'Back' });
+
+async function startFirstStage(page: Page) {
+  await playLink(page).click();
+  await deliverButton(page).click();
+}
 
 async function playThenMenu(page: Page) {
-  await playLink(page).click();
+  await startFirstStage(page);
   await expect(page.locator('canvas')).toHaveCount(1);
-  await menuLink(page).click();
+  await pauseButton(page).click();
+  await quitButton(page).click();
   await expect(page.locator('canvas')).toHaveCount(0);
+  await backLink(page).click();
 }
 
 async function collectedHeapBytes(page: Page) {
@@ -118,11 +128,12 @@ test('twenty play-menu cycles leave one canvas and bounded heap', async ({ page 
 
 test('rapid toggling during boot leaves one canvas', async ({ page }) => {
   await page.goto('/#/');
-  for (let cycle = 0; cycle < RAPID_CYCLES; cycle++) {
-    await playLink(page).click();
-    await menuLink(page).click();
-  }
   await playLink(page).click();
+  for (let cycle = 0; cycle < RAPID_CYCLES; cycle++) {
+    await deliverButton(page).click();
+    await page.goBack();
+  }
+  await deliverButton(page).click();
   await page.waitForTimeout(1000);
   await expect(page.locator('canvas')).toHaveCount(1);
 });

@@ -19,6 +19,15 @@ export const DEFAULT_BINDINGS: KeyBindings = {
   pause: ['Escape', 'Enter'],
 };
 
+export const GAME_ACTIONS: readonly GameAction[] = [
+  'left',
+  'right',
+  'down',
+  'jump',
+  'run',
+  'pause',
+];
+
 export interface PadState {
   axisX: number;
   buttons: readonly boolean[];
@@ -30,6 +39,7 @@ const PAD_RUN = 2;
 const PAD_DOWN = 13;
 const PAD_LEFT = 14;
 const PAD_RIGHT = 15;
+export const PAD_START = 9;
 
 export function isActionPressed(
   pressed: ReadonlySet<string>,

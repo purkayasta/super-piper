@@ -14,7 +14,7 @@ export const createGame: GameFactory = (parent, bridge, options, audio) => {
     parent.clientWidth || window.innerWidth,
     parent.clientHeight || window.innerHeight,
     window.devicePixelRatio || 1,
-    options.quality,
+    options.settings.quality,
   );
   const config = createGameConfig(parent, initialZoom, [
     BootScene,
@@ -43,7 +43,7 @@ export const createGame: GameFactory = (parent, bridge, options, audio) => {
         viewportCssWidth,
         viewportCssHeight,
         devicePixelRatio,
-        options.quality,
+        options.settings.quality,
       );
       if (zoom === readZoom(game.registry)) return;
       game.scale.resize(LOGICAL_WIDTH * zoom, LOGICAL_HEIGHT * zoom);

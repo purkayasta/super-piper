@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { padCounter } from './hud-format';
+import { padCounter } from './counter-format';
 
 describe('padCounter', () => {
   it('zero-pads to the requested width', () => {

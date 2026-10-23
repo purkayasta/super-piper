@@ -42,6 +42,11 @@ interface DebrisSlot {
   vy: number;
 }
 
+export interface BlockEffectOptions {
+  readonly brickDebrisPieces: number;
+  readonly sparkles: boolean;
+}
+
 const HALF_TILE = TILE_SIZE / 2;
 const MS_PER_SECOND = 1000;
 
@@ -51,7 +56,12 @@ export class BlockEffects {
   private readonly sparkles: TimedSlot[] = [];
   private readonly debris: DebrisSlot[] = [];
 
-  constructor(scene: Phaser.Scene, tilesetKey: AssetId, depth: number) {
+  constructor(
+    scene: Phaser.Scene,
+    tilesetKey: AssetId,
+    depth: number,
+    private readonly options: BlockEffectOptions,
+  ) {
     for (let i = 0; i < EFFECT_POOL_SIZE; i++) {
       this.bumps.push({
         image: scene.add
@@ -83,7 +93,9 @@ export class BlockEffects {
   breakBrick(tile: Phaser.Tilemaps.Tile): void {
     const centerX = tile.pixelX + HALF_TILE;
     const centerY = tile.pixelY + HALF_TILE;
-    for (const piece of BRICK_DEBRIS.pieces) {
+    const pieceCount = Math.min(this.options.brickDebrisPieces, BRICK_DEBRIS.pieces.length);
+    for (let i = 0; i < pieceCount; i++) {
+      const piece = BRICK_DEBRIS.pieces[i];
       const slot = this.oldestDebris();
       slot.active = true;
       slot.elapsedMs = 0;
@@ -120,6 +132,7 @@ export class BlockEffects {
   }
 
   sparkle(centerX: number, centerY: number): void {
+    if (!this.options.sparkles) return;
     const slot = this.freeSlot(this.sparkles);
     slot.baseY = centerY;
     slot.sprite.setFrame(SPARKLE_FRAMES[0]).setPosition(centerX, centerY).setVisible(true);

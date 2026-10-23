@@ -1,28 +1,73 @@
-<div #host class="host"></div>
+<div #host class="host" tabindex="-1" aria-label="Game"></div>
 <app-hud [hud]="hud()" [stageLabel]="stageLabel()" />
 @if (!loaded()) {
-  <p class="loading" role="status">LOADING {{ loadPercent() }}%</p>
+  <div class="loading" role="status">
+    @if (loadError(); as message) {
+      <p class="load-error">{{ message }}</p>
+    } @else {
+      <p>LOADING {{ loadPercent() }}%</p>
+    }
+    <a class="ui-button" routerLink="/map">Cancel</a>
+  </div>
 }
-@if (stageResult(); as result) {
-  <section class="banner" role="status">
-    <h2 class="banner-title">DELIVERED!</h2>
-    <p class="banner-score">SCORE {{ result.score }}</p>
-    <a class="banner-link" routerLink="/">Menu</a>
-  </section>
+@if (canPause()) {
+  <button
+    type="button"
+    class="pause-button"
+    data-testid="pause"
+    aria-label="Pause"
+    (click)="pause()"
+  >
+    <span aria-hidden="true"></span>
+  </button>
+}
+@if (paused()) {
+  <app-pause-menu
+    [stageLabel]="stageLabel()"
+    (resumed)="resume()"
+    (restarted)="restart()"
+    (quit)="quitToMap()"
+  />
+}
+@if (report(); as clearReport) {
+  <app-results
+    [report]="clearReport"
+    [stageTitle]="stageTitle()"
+    [canContinue]="nextStage() !== null"
+    (next)="playNext()"
+    (replay)="restart()"
+    (map)="quitToMap()"
+  />
 }
 @if (gameOver(); as result) {
-  <section class="banner" role="status">
-    <h2 class="banner-title">GAME OVER</h2>
-    <p class="banner-score">SCORE {{ result.score }}</p>
-    <div class="banner-actions">
-      <button type="button" class="banner-button" data-testid="retry" (click)="retry()">
-        Retry
-      </button>
-      <a class="banner-link" routerLink="/">Menu</a>
-    </div>
-  </section>
+  <div class="overlay">
+    <section
+      class="panel game-over"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="game-over-title"
+      appMenuNav
+      (menuBack)="quitToMap()"
+    >
+      <h2 id="game-over-title" class="screen-title">GAME OVER</h2>
+      <p class="game-over-score">SCORE {{ result.score }}</p>
+      <div class="game-over-actions">
+        <button
+          type="button"
+          class="ui-button primary"
+          data-nav-default
+          data-testid="retry"
+          (click)="restart()"
+        >
+          Retry
+        </button>
+        <button type="button" class="ui-button" data-testid="game-over-map" (click)="quitToMap()">
+          World map
+        </button>
+      </div>
+    </section>
+  </div>
 }
-<a class="menu-link" routerLink="/">Menu</a>
 @if (devTools) {
   <app-dev-overlay [sample]="perf()" />
   <app-tuning-panel (tuningChange)="applyTuning($event)" />

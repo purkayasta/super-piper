@@ -1,0 +1,97 @@
+<div class="overlay">
+  <section
+    class="panel results"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="results-title"
+    appMenuNav
+    (menuBack)="map.emit()"
+  >
+    <header>
+      <h2 id="results-title" class="screen-title">DELIVERED!</h2>
+      <p class="stage">{{ report().stageId }} {{ stageTitle() }}</p>
+    </header>
+
+    <app-star-row [stars]="report().stars" [fresh]="report().newStars" [large]="true" />
+
+    <dl class="tally">
+      <div>
+        <dt>SCORE</dt>
+        <dd data-testid="results-score">
+          {{ score() }}
+          @if (report().newBestScore) {
+            <span class="tag">BEST</span>
+          }
+        </dd>
+      </div>
+      <div>
+        <dt>TIME USED</dt>
+        <dd data-testid="results-time">
+          {{ timeUsed() }} / {{ targetTime() }}
+          @if (report().newBestTime) {
+            <span class="tag">BEST</span>
+          }
+        </dd>
+      </div>
+      <div>
+        <dt>POSTMARKS</dt>
+        <dd data-testid="results-postmarks">
+          {{ report().postmarksFound }}/{{ report().postmarkTotal }}
+        </dd>
+      </div>
+      <div>
+        <dt>COINS</dt>
+        <dd data-testid="results-coins">+{{ report().coinsEarned }}</dd>
+      </div>
+      <div>
+        <dt>XP</dt>
+        <dd data-testid="results-xp">+{{ report().xpEarned }}</dd>
+      </div>
+    </dl>
+
+    <div class="rank">
+      <p>
+        @if (rankedUp()) {
+          <span class="tag">RANK UP</span>
+        }
+        {{ report().rankAfter.rank.title }}
+      </p>
+      <span
+        class="rank-bar"
+        role="progressbar"
+        aria-label="Progress to the next rank"
+        [attr.aria-valuenow]="rankPercent()"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        ><span [style.width.%]="rankPercent()"></span
+      ></span>
+    </div>
+
+    <div class="actions">
+      @if (canContinue()) {
+        <button
+          type="button"
+          class="ui-button primary"
+          data-nav-default
+          data-testid="next-stage"
+          (click)="next.emit()"
+        >
+          Next stage
+        </button>
+      }
+      <button
+        type="button"
+        class="ui-button"
+        [class.primary]="!canContinue()"
+        [attr.data-nav-default]="canContinue() ? null : ''"
+        data-testid="results-map"
+        (click)="map.emit()"
+      >
+        World map
+      </button>
+      <button type="button" class="ui-button" data-testid="replay" (click)="replay.emit()">
+        Replay
+      </button>
+    </div>
+  </section>
+</div>

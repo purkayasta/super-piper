@@ -133,6 +133,7 @@ Hand-made art can replace any generated file by being placed at the manifest pat
 - `game-engine/core/game-events.ts` defines:
   - a `GameCommand` discriminated union: `startStage`, `pause`, `resume`, `restart`, `quitToMap`, `applySettings`, `requestSnapshot`
   - a `GameEvent` union: `loadProgress`, `loadComplete`, `hudChanged` (score/coins/time/lives/power, emitted only on change; time once per in-game second), `checkpoint`, `stageComplete`, `playerDied`, `gameOver`, `bossDefeated`, `milestone`, `recoverableError`
+- **Pause (Phase 6):** Phaser turns the pause binding or gamepad Start into a `pauseRequested` event. Angular decides, sends `pause`, and shows the overlay only when the scene answers `paused`. A pause asked for before `loadComplete` is sent just after it. Settings and key bindings reach Phaser once, in `GameOptions.settings` and `GameOptions.bindings`; quality and reduced motion become a pure `EffectProfile` in the scene. `stageComplete` carries the time used, the coins collected and the Postmarks collected, which Angular turns into stars, bests, coins and XP.
 - `GameSessionService` (Angular) is the only thing that touches the Phaser instance. It sends commands and exposes events as signals for templates.
 - **Audio (Phase 5):** one Web Audio engine (`game-engine/audio/web-audio-engine.ts`, no Phaser) lives for the app's lifetime, owned by Angular's `AudioService`. Phaser's own sound system is off (`audio.noAudio`). The game factory receives the engine as the narrow `GameAudio` port (`prepare`, `playSfx`, `playMusic`, `pauseMusic`, `resumeMusic`, `stopAll`), stored in the registry like the bridge. Scenes call it on gameplay events only, never per frame, and a pure `MusicDirector` decides the track. Volumes never cross the bridge: they are Angular settings applied straight to the engine. No `AudioContext` exists before the first user gesture; leaving the play route stops every sound.
 - **Lifecycle:** `GameShellComponent` creates the Phaser game once in `afterNextRender` and calls `game.destroy(true)` in `ngOnDestroy`. Pause and results are overlays inside the shell. The game is paused, never recreated, while an overlay shows. Every scene unregisters its listeners and stops its timers and tweens on `shutdown`. Sound outlives a `scene.restart` (a death jingle must finish), and `GameSessionService.detach` stops it all.
@@ -141,6 +142,7 @@ Hand-made art can replace any generated file by being placed at the manifest pat
 
 - **Routes** use hash location for zero-config GitHub Pages deep links _(builder's call)_: `#/` menu, `#/map`, `#/play/:stageId`, `#/settings`, `#/achievements`, `#/shop`.
 - Every feature is lazy-loaded. The Phaser bundle is only loaded by the play route.
+- **Menu input (Phase 6):** the `appMenuNav` directive moves focus with the arrow keys and sends Esc as "back". `GamepadMenuService` polls the first gamepad only while a menu is on screen and a pad is connected, and feeds the same directive (d-pad/stick move, A confirm, B back, Start).
 - **UI rules:** plain HTML/CSS with the Press Start 2P font (self-hosted). Transitions use only transform and opacity. No large blur, shadow or filter effects.
 
 ## 9. Saves
@@ -149,6 +151,7 @@ Hand-made art can replace any generated file by being placed at the manifest pat
 - Typed validation on load, then migrations, then defaults for missing fields.
 - The last good save is kept under `pip.save.backup`.
 - **Recovery:** a corrupt save falls back to the backup, then to a fresh save, and the user sees a notice.
+- **As built (Phase 6):** schema version 1 holds `progression`, `settings`, `cosmetics` and `achievements`. A wrong type or impossible value is corruption; a missing field takes its default; unknown stage IDs are dropped. The backup slot holds the primary as it was before the latest write. The damaged text is kept under `pip.save.corrupt`. With no usable storage the game runs from memory and says so. The pure rules are in `src/app/core/utilities/save-*.ts`.
 - **Timing:**
   - Write immediately on stage completion, purchase and achievement.
   - Debounce settings writes by 500ms.

@@ -36,7 +36,11 @@ export interface StageResult {
   score: number;
   coins: number;
   timeLeft: number;
+  timeUsed: number;
+  coinsCollected: number;
   postmarks: number;
+  postmarksCollected: readonly number[];
+  postmarkTotal: number;
 }
 
 export type GameCommand =
@@ -56,6 +60,7 @@ export type GameEvent =
   | { type: 'checkpoint'; stageId: StageId; column: number }
   | { type: 'playerDied'; stageId: StageId; livesLeft: number }
   | { type: 'gameOver'; result: StageResult }
+  | { type: 'pauseRequested' }
   | { type: 'paused' }
   | { type: 'resumed' }
   | { type: 'perfSample'; sample: PerfSample }

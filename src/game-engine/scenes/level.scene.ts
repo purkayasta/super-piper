@@ -53,6 +53,7 @@ import {
 } from '../systems/actors/stage-actors';
 import { nextPixelViewLeft } from '../systems/camera/forward-camera';
 import { CheckpointTracker } from '../systems/checkpoints/checkpoint';
+import { effectProfile, type EffectProfile } from '../systems/effects/effect-profile';
 import { flickerVisible, frameAt } from '../systems/effects/effect-curves';
 import { DomInput } from '../systems/input/dom-input';
 import { GoalSequence, type GoalLayout } from '../systems/level-completion/goal-sequence';
@@ -115,7 +116,12 @@ const GOAL_TRIGGER_TOLERANCE = 1;
 const PARCEL_HAND_HEIGHT_PX = 10;
 const PARCEL_HAND_REACH_PX = 8;
 
-const FRESH_RUN: RunTotals = { score: 0, coins: 0, lives: SCORING.startingLives };
+const FRESH_RUN: RunTotals = {
+  score: 0,
+  coins: 0,
+  lives: SCORING.startingLives,
+  coinsCollected: 0,
+};
 
 const Depth = {
   scenery: 0,
@@ -133,6 +139,7 @@ const Depth = {
 export class LevelScene extends Phaser.Scene {
   private bridge!: GameBridge;
   private options!: GameOptions;
+  private profile!: EffectProfile;
   private audio: GameAudio = SILENT_AUDIO;
   private music!: MusicDirector;
   private musicTrack: MusicId | null | undefined = undefined;
@@ -196,13 +203,15 @@ export class LevelScene extends Phaser.Scene {
   preload(): void {
     this.bridge = readBridge(this.registry)!;
     this.options = readOptions(this.registry)!;
+    this.profile = effectProfile(this.options.settings);
     this.stage = stageEntry(this.options.initialStageId)!;
     this.level = this.stage.level!;
     this.audio = readAudio(this.registry) ?? SILENT_AUDIO;
     this.audio.prepare(stageSoundIds(this.level.music));
     this.sceneryIds = sceneryAssetIds(
       this.level.theme,
-      sceneryResolutionForQuality(this.options.quality),
+      sceneryResolutionForQuality(this.options.settings.quality),
+      this.profile.skippedSceneryLayers,
     );
     this.load.on(Phaser.Loader.Events.PROGRESS, this.reportProgress);
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.reportLoadError);
@@ -230,8 +239,10 @@ export class LevelScene extends Phaser.Scene {
     this.parallax = new ParallaxRenderer(
       this,
       this.level.theme,
-      sceneryResolutionForQuality(this.options.quality),
+      sceneryResolutionForQuality(this.options.settings.quality),
       Depth.scenery,
+      this.profile.skippedSceneryLayers,
+      this.profile.cloudDrift,
     );
     this.collisionLayer = this.buildTileLayers(tilesetKey);
     ensureGameplayAnimations(this, DEFAULT_OUTFIT);
@@ -251,7 +262,7 @@ export class LevelScene extends Phaser.Scene {
       this.compiled.hiddenBlocks,
       MULTI_COIN,
     );
-    this.effects = new BlockEffects(this, tilesetKey, Depth.effects);
+    this.effects = new BlockEffects(this, tilesetKey, Depth.effects, this.profile);
     this.popups = new ScorePopups(this, Depth.popups);
     this.goal = new GoalSequence(GOAL_SEQUENCE);
     this.power = new PipPower(POWER_RULES);
@@ -261,7 +272,7 @@ export class LevelScene extends Phaser.Scene {
     this.music = new MusicDirector(stageTracks(this.level.music), AUDIO_RULES.hurryWarningMs);
     this.musicTrack = undefined;
 
-    this.controls = new DomInput();
+    this.controls = new DomInput(this.options.bindings);
     this.placeStart();
     this.player = new Player(
       this,
@@ -309,6 +320,9 @@ export class LevelScene extends Phaser.Scene {
 
   override update(_time: number, delta: number): void {
     if (this.options.devTools) this.perfSampler.recordFrame();
+    if (this.controls.consumePausePress() && this.canPause) {
+      this.bridge.emit({ type: 'pauseRequested' });
+    }
     this.stepPower(delta);
     if (this.death.active) this.stepDeath(delta);
     if (!this.worldFrozen && !this.goal.active && !this.finished) {
@@ -343,6 +357,10 @@ export class LevelScene extends Phaser.Scene {
     if (track === this.musicTrack) return;
     this.musicTrack = track;
     this.audio.playMusic(track);
+  }
+
+  private get canPause(): boolean {
+    return !this.finished && !this.gameIsOver;
   }
 
   private get worldFrozen(): boolean {
@@ -495,6 +513,7 @@ export class LevelScene extends Phaser.Scene {
   private readonly handleCommand = (command: GameCommand): void => {
     switch (command.type) {
       case 'pause':
+        if (!this.canPause || !this.scene.isActive()) return;
         this.controls.releaseAll();
         this.audio.pauseMusic();
         this.audio.playSfx(Sfx.pause);
@@ -502,6 +521,7 @@ export class LevelScene extends Phaser.Scene {
         this.bridge.emit({ type: 'paused' });
         break;
       case 'resume':
+        if (!this.scene.isPaused()) return;
         this.audio.resumeMusic();
         this.scene.resume();
         this.bridge.emit({ type: 'resumed' });
@@ -922,7 +942,11 @@ export class LevelScene extends Phaser.Scene {
       score: hud.score,
       coins: hud.coins,
       timeLeft: hud.timeLeft,
+      timeUsed: this.session.timeUsed,
+      coinsCollected: this.session.coinsCollected,
       postmarks: this.session.postmarks,
+      postmarksCollected: [...this.collectedPostmarks].sort((a, b) => a - b),
+      postmarkTotal: this.compiled.postmarks.length,
     };
   }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SCORING } from '../../configuration/scoring.config';
 import { StageSession, type RunTotals } from './stage-session';
 
-const FRESH_RUN: RunTotals = { score: 0, coins: 0, lives: 3 };
+const FRESH_RUN: RunTotals = { score: 0, coins: 0, lives: 3, coinsCollected: 0 };
 
 function session(): StageSession {
   const created = new StageSession(400, FRESH_RUN, SCORING);
@@ -63,10 +63,15 @@ describe('StageSession', () => {
   });
 
   it('carries the run totals and Postmarks into a restarted stage', () => {
-    const restarted = new StageSession(400, { score: 4200, coins: 12, lives: 2 }, SCORING, 2);
+    const restarted = new StageSession(
+      400,
+      { score: 4200, coins: 12, lives: 2, coinsCollected: 112 },
+      SCORING,
+      2,
+    );
     expect(restarted.snapshot()).toMatchObject({ score: 4200, coins: 12, lives: 2, timeLeft: 400 });
     expect(restarted.postmarks).toBe(2);
-    expect(restarted.totals()).toEqual({ score: 4200, coins: 12, lives: 2 });
+    expect(restarted.totals()).toEqual({ score: 4200, coins: 12, lives: 2, coinsCollected: 112 });
   });
 
   it('adds and loses lives, never below zero', () => {
@@ -75,7 +80,7 @@ describe('StageSession', () => {
     expect(stage.hud.lives).toBe(4);
     expect(stage.consumeChange()).toBe(true);
     expect(stage.loseLife()).toBe(3);
-    const last = new StageSession(400, { score: 0, coins: 0, lives: 0 }, SCORING);
+    const last = new StageSession(400, { ...FRESH_RUN, lives: 0 }, SCORING);
     expect(last.loseLife()).toBe(0);
   });
 
@@ -107,5 +112,22 @@ describe('StageSession', () => {
     const snapshot = stage.snapshot();
     stage.addCoin();
     expect(snapshot.coins).toBe(0);
+  });
+
+  it('counts every coin collected, past the 100-coin wrap and across lives', () => {
+    const stage = new StageSession(400, { ...FRESH_RUN, coins: 99, coinsCollected: 5 }, SCORING);
+    stage.addCoin();
+    stage.addCoin();
+    expect(stage.hud.coins).toBe(1);
+    expect(stage.coinsCollected).toBe(7);
+    expect(stage.totals().coinsCollected).toBe(7);
+  });
+
+  it('counts the time units used, not the time converted at the goal', () => {
+    const stage = new StageSession(400, FRESH_RUN, SCORING);
+    stage.tick(SCORING.timeUnitMs * 3);
+    stage.stopClock();
+    stage.convertTime(100);
+    expect(stage.timeUsed).toBe(3);
   });
 });

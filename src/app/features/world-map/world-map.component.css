@@ -1,0 +1,189 @@
+:host {
+  display: block;
+}
+
+.map-screen {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1.5rem;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.heading {
+  flex: 1;
+}
+
+.subtitle {
+  margin: 0.75rem 0 0;
+  color: var(--sky);
+  font-size: 0.625rem;
+}
+
+.rank {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: end;
+  color: var(--cream);
+  font-size: 0.625rem;
+}
+
+.rank-bar {
+  width: 10rem;
+  height: 0.5rem;
+  background: var(--ink);
+  border: 0.125rem solid var(--cream);
+}
+
+.rank-bar span {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+
+.coin {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.5em;
+  border-radius: 50%;
+  background: var(--gold);
+  vertical-align: -0.1em;
+}
+
+.map {
+  position: relative;
+  min-height: 16rem;
+  background:
+    radial-gradient(circle at 20% 30%, #4f9d55 0 18%, transparent 19%),
+    radial-gradient(circle at 75% 75%, #4f9d55 0 22%, transparent 23%), #3f8a4a;
+  border: 0.25rem solid var(--ink);
+}
+
+.route {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.route polyline {
+  fill: none;
+  stroke: var(--cream);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.node {
+  position: absolute;
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  min-width: 5rem;
+  padding: 0.6rem;
+  background: var(--panel);
+  border: 0.25rem solid var(--cream);
+  box-shadow: 0.25rem 0.25rem 0 var(--ink);
+  color: #fff;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+
+.underground {
+  background: #5b3f6b;
+}
+.sky {
+  background: #3b7fb3;
+}
+.castle {
+  background: #6b2a2a;
+}
+.overworld {
+  background: #2a7a4f;
+}
+
+.node.locked,
+.node.coming-soon {
+  border-color: var(--muted);
+  color: var(--muted);
+  filter: saturate(0.3);
+}
+
+.node.selected,
+.node:focus {
+  border-color: var(--gold);
+  outline: none;
+  transform: translate(-50%, -50%) translateY(-0.25rem);
+}
+
+.node-label {
+  font-size: 0.875rem;
+}
+
+.node-state {
+  font-size: 0.5rem;
+}
+
+.details {
+  display: grid;
+  gap: 1rem;
+  font-size: 0.625rem;
+  line-height: 1.8;
+}
+
+.details h2 {
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.875rem;
+}
+
+.stage-title {
+  color: #fff;
+}
+
+.goals {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goals li::before {
+  content: '☆ ';
+  color: var(--muted);
+}
+
+.goals li.done::before {
+  content: '★ ';
+  color: var(--gold);
+}
+
+.bests {
+  display: flex;
+  gap: 2rem;
+  margin: 0;
+}
+
+.bests dt {
+  color: var(--sky);
+}
+
+.bests dd {
+  margin: 0;
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.details .ui-button {
+  justify-self: start;
+}

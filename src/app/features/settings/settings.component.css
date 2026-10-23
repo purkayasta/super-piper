@@ -1,0 +1,83 @@
+:host {
+  display: block;
+}
+
+.settings-screen {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.group {
+  display: grid;
+  gap: 1rem;
+}
+
+.group h2 {
+  margin: 0;
+  color: var(--sky);
+  font-size: 0.75rem;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.choices .ui-button {
+  text-transform: uppercase;
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.5625rem;
+  line-height: 1.8;
+}
+
+.bindings {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bindings li {
+  display: grid;
+  grid-template-columns: 9em 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.625rem;
+}
+
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+kbd {
+  padding: 0.35em 0.5em;
+  background: var(--ink);
+  border: 0.125rem solid var(--muted);
+  font: inherit;
+  font-size: 0.5rem;
+}
+
+kbd:first-child {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.group > .ui-button {
+  justify-self: start;
+}

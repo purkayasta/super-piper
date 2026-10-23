@@ -59,7 +59,7 @@ export class TestRoomScene extends Phaser.Scene {
     this.viewLeft = 0;
 
     const layer = this.buildLevel();
-    this.controls = new DomInput();
+    this.controls = new DomInput(this.options.bindings);
     this.player = new Player(
       this,
       this.startX,
@@ -82,6 +82,7 @@ export class TestRoomScene extends Phaser.Scene {
 
   override update(): void {
     if (this.options.devTools) this.perfSampler.recordFrame();
+    if (this.controls.consumePausePress()) this.bridge.emit({ type: 'pauseRequested' });
   }
 
   private buildLevel(): Phaser.Tilemaps.TilemapLayer {
@@ -141,11 +142,13 @@ export class TestRoomScene extends Phaser.Scene {
   private readonly handleCommand = (command: GameCommand): void => {
     switch (command.type) {
       case 'pause':
+        if (!this.scene.isActive()) return;
         this.controls.releaseAll();
         this.scene.pause();
         this.bridge.emit({ type: 'paused' });
         break;
       case 'resume':
+        if (!this.scene.isPaused()) return;
         this.scene.resume();
         this.bridge.emit({ type: 'resumed' });
         break;

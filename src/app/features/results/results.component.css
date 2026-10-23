@@ -1,0 +1,73 @@
+.results {
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  width: min(30rem, 100%);
+  text-align: center;
+}
+
+header {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.stage {
+  margin: 0;
+  color: var(--sky);
+  font-size: 0.625rem;
+}
+
+.tally {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+  margin: 0;
+  font-size: 0.625rem;
+}
+
+.tally div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tally dt {
+  color: var(--muted);
+}
+
+.tally dd {
+  margin: 0;
+}
+
+.rank {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  width: 100%;
+  font-size: 0.625rem;
+}
+
+.rank p {
+  margin: 0;
+  color: var(--cream);
+}
+
+.rank-bar {
+  width: 100%;
+  height: 0.5rem;
+  background: var(--ink);
+  border: 0.125rem solid var(--cream);
+}
+
+.rank-bar span {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}

@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
-import type { SceneryResolution, SceneryTheme } from '../../../content/art/scenery-layers';
+import type {
+  SceneryLayerId,
+  SceneryResolution,
+  SceneryTheme,
+} from '../../../content/art/scenery-layers';
 import { SCENERY_BY_THEME } from '../../../content/art/scenery-layers';
 import {
   assetEntry,
@@ -9,8 +13,14 @@ import {
 } from '../../../content/manifests/asset-manifest';
 import { TILE_COUNT, TILESET_LAYOUT } from '../../world/tile-ids';
 
-export function sceneryAssetIds(theme: SceneryTheme, resolution: SceneryResolution): AssetId[] {
-  return SCENERY_BY_THEME[theme].map((layer) => sceneryAssetId(theme, layer.id, resolution));
+export function sceneryAssetIds(
+  theme: SceneryTheme,
+  resolution: SceneryResolution,
+  skippedLayers: readonly SceneryLayerId[],
+): AssetId[] {
+  return SCENERY_BY_THEME[theme]
+    .filter((layer) => !skippedLayers.includes(layer.id))
+    .map((layer) => sceneryAssetId(theme, layer.id, resolution));
 }
 
 export function queueAssets(scene: Phaser.Scene, ids: readonly AssetId[]): void {

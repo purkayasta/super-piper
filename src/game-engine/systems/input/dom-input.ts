@@ -1,6 +1,8 @@
 import {
   DEFAULT_BINDINGS,
+  PAD_START,
   createActionState,
+  isActionPressed,
   resolveActions,
   type ActionState,
   type GameAction,
@@ -11,7 +13,13 @@ import { InputTracker } from './input-tracker';
 
 const CAPTURED_ACTIONS: readonly GameAction[] = ['left', 'right', 'down', 'jump', 'run'];
 const STICK_X_AXIS = 0;
-const EDITABLE_TAGS: ReadonlySet<string> = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
+const UI_CONTROL_TAGS: ReadonlySet<string> = new Set([
+  'INPUT',
+  'TEXTAREA',
+  'SELECT',
+  'BUTTON',
+  'A',
+]);
 
 export class DomInput {
   private readonly tracker = new InputTracker();
@@ -22,6 +30,7 @@ export class DomInput {
   private view: Window | null = null;
   private padConnected = false;
   private padActive = false;
+  private pauseLatched = true;
 
   constructor(private readonly bindings: KeyBindings = DEFAULT_BINDINGS) {
     this.capturedCodes = new Set(CAPTURED_ACTIONS.flatMap((action) => bindings[action]));
@@ -34,6 +43,15 @@ export class DomInput {
       this.padActive ? this.pad : null,
       this.actions,
     );
+
+  consumePausePress(): boolean {
+    const held =
+      isActionPressed(this.tracker.pressed, this.bindings, 'pause') ||
+      (this.padActive && this.padButtons[PAD_START] === true);
+    const pressed = held && !this.pauseLatched;
+    this.pauseLatched = held;
+    return pressed;
+  }
 
   attach(view: Window): void {
     if (this.view) return;
@@ -63,6 +81,7 @@ export class DomInput {
   readonly releaseAll = (): void => {
     this.tracker.releaseAll();
     this.padActive = false;
+    this.pauseLatched = true;
   };
 
   pollGamepad(): void {
@@ -80,7 +99,7 @@ export class DomInput {
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    if (isEditableTarget(event.target)) return;
+    if (isUiControlTarget(event.target)) return;
     this.tracker.keyDown(event.code);
     if (this.capturedCodes.has(event.code) && !hasShortcutModifier(event)) {
       event.preventDefault();
@@ -123,9 +142,9 @@ function hasShortcutModifier(event: KeyboardEvent): boolean {
   return event.ctrlKey || event.metaKey || event.altKey;
 }
 
-function isEditableTarget(target: EventTarget | null): boolean {
+function isUiControlTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
-  if (EDITABLE_TAGS.has(target.tagName)) return true;
+  if (UI_CONTROL_TAGS.has(target.tagName)) return true;
   if ((target as HTMLElement).isContentEditable === true) return true;
   return isInsideContentEditable(target);
 }

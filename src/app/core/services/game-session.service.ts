@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { GameBridge } from '../../../game-engine/core/game-bridge';
 import type {
   GameCommand,
@@ -27,7 +27,9 @@ export class GameSessionService {
   private readonly hudState = signal<HudState | null>(null);
   private readonly stageResultState = signal<StageResult | null>(null);
   private readonly gameOverState = signal<StageResult | null>(null);
+  private readonly loadErrorState = signal<string | null>(null);
   private session: ActiveSession | null = null;
+  private pauseWanted = false;
 
   readonly loaded = this.loadedState.asReadonly();
   readonly paused = this.pausedState.asReadonly();
@@ -37,6 +39,14 @@ export class GameSessionService {
   readonly hud = this.hudState.asReadonly();
   readonly stageResult = this.stageResultState.asReadonly();
   readonly gameOver = this.gameOverState.asReadonly();
+  readonly loadError = this.loadErrorState.asReadonly();
+  readonly canPause = computed(
+    () =>
+      this.loadedState() &&
+      !this.pausedState() &&
+      this.stageResultState() === null &&
+      this.gameOverState() === null,
+  );
 
   attach(host: HTMLElement, options: GameOptions): void {
     if (this.session) throw new Error('GameSessionService is already attached');
@@ -48,6 +58,8 @@ export class GameSessionService {
     this.hudState.set(null);
     this.stageResultState.set(null);
     this.gameOverState.set(null);
+    this.loadErrorState.set(null);
+    this.pauseWanted = false;
     const bridge = new GameBridge();
     bridge.onEvent((event) => this.applyEvent(event));
     try {
@@ -56,6 +68,25 @@ export class GameSessionService {
       bridge.dispose();
       throw error;
     }
+  }
+
+  requestPause(): void {
+    if (!this.session) return;
+    if (!this.loadedState()) {
+      this.pauseWanted = true;
+      return;
+    }
+    if (this.canPause()) this.send({ type: 'pause' });
+  }
+
+  resume(): void {
+    this.pauseWanted = false;
+    if (this.pausedState()) this.send({ type: 'resume' });
+  }
+
+  restart(): void {
+    this.pauseWanted = false;
+    this.send({ type: 'restart' });
   }
 
   send(command: GameCommand): void {
@@ -75,6 +106,13 @@ export class GameSessionService {
     this.audio.stopAll();
   }
 
+  private applyWantedPause(): void {
+    if (!this.pauseWanted) return;
+    this.pauseWanted = false;
+    // A scene that pauses inside its own create() is set back to running by Phaser's SceneManager.
+    queueMicrotask(() => this.requestPause());
+  }
+
   private applyEvent(event: GameEvent): void {
     switch (event.type) {
       case 'loadProgress':
@@ -84,7 +122,10 @@ export class GameSessionService {
         this.loadProgressState.set(1);
         this.stageLabelState.set(event.stageLabel);
         this.loadedState.set(true);
+        this.pausedState.set(false);
+        this.stageResultState.set(null);
         this.gameOverState.set(null);
+        this.applyWantedPause();
         break;
       case 'hudChanged':
         this.hudState.set(event.hud);
@@ -95,11 +136,17 @@ export class GameSessionService {
       case 'gameOver':
         this.gameOverState.set(event.result);
         break;
+      case 'pauseRequested':
+        this.requestPause();
+        break;
       case 'paused':
         this.pausedState.set(true);
         break;
       case 'resumed':
         this.pausedState.set(false);
+        break;
+      case 'recoverableError':
+        if (!this.loadedState()) this.loadErrorState.set(event.message);
         break;
       case 'perfSample':
         this.perfState.set(event.sample);
