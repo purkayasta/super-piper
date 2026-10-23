@@ -3,6 +3,7 @@ import { MUSIC_IDS, SFX_IDS, soundFileName, type SoundId } from '../audio/sound-
 import {
   SCENERY_BY_THEME,
   SCENERY_RESOLUTIONS,
+  SCENERY_THEMES,
   type SceneryLayerId,
   type SceneryResolution,
   type SceneryTheme,
@@ -52,7 +53,7 @@ function buildManifest(): Record<AssetId, AssetEntry> {
       dataPath: `${GENERATED_ASSET_ROOT}/sprites/gameplay.json`,
     },
   ];
-  for (const theme of Object.keys(SCENERY_BY_THEME) as SceneryTheme[]) {
+  for (const theme of SCENERY_THEMES) {
     entries.push({
       id: tilesetAssetId(theme),
       kind: 'tileset',

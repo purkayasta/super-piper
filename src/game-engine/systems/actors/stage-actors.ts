@@ -45,6 +45,8 @@ export interface PipProbe {
   interactive: boolean;
 }
 
+export type ComboKind = 'stomp' | 'shell';
+
 export interface ActorEvents {
   award(points: number, x: number, y: number): void;
   bouncePip(): void;
@@ -52,6 +54,7 @@ export interface ActorEvents {
   collectPowerUp(kind: PowerUpKind, x: number, y: number): void;
   parcelBurst(x: number, y: number): void;
   strike(): void;
+  combo(kind: ComboKind, length: number): void;
 }
 
 export interface StageActorsConfig {
@@ -261,6 +264,7 @@ export class StageActors {
     victim.knockOut(shell.facing);
     this.events.strike();
     this.award(ladderAward(this.config.ladder, shell.chainIndex++), victim);
+    this.events.combo('shell', shell.chainIndex - this.config.shellChainStart);
   }
 
   private resolveParcelHits(): void {
@@ -303,6 +307,7 @@ export class StageActors {
         enemy.stomp();
         this.events.bouncePip();
         this.award(this.stompChain.next(), enemy);
+        this.events.combo('stomp', this.stompChain.length);
       } else if (pip.vulnerable && !hurt) {
         hurt = true;
         this.events.hurtPip();

@@ -73,7 +73,7 @@ describe('sound library', () => {
   });
 
   it('lists the sounds a stage and the menu need', () => {
-    const sounds = stageSoundIds('music.overworld');
+    const sounds = stageSoundIds(['music.overworld']);
     expect(sounds).toEqual(expect.arrayContaining([...SFX_IDS]));
     expect(sounds).toEqual(
       expect.arrayContaining([
@@ -85,13 +85,20 @@ describe('sound library', () => {
       ]),
     );
     expect(sounds).not.toContain('music.underground');
-    expect(stageTracks('music.castle')).toEqual({
+    expect(sounds).not.toContain('music.boss');
+    expect(stageTracks('music.castle', true)).toEqual({
       stage: 'music.castle',
       hurry: 'music.castle-hurry',
       star: 'music.star',
       clear: 'music.stage-clear',
       gameOver: 'music.game-over',
+      boss: 'music.boss',
     });
+    const withAreas = stageSoundIds(['music.overworld', 'music.underground'], true);
+    expect(withAreas).toEqual(
+      expect.arrayContaining(['music.underground', 'music.underground-hurry', 'music.boss']),
+    );
+    expect(new Set(withAreas).size).toBe(withAreas.length);
     expect(MENU_SOUND_IDS).toContain('music.menu');
   });
 });

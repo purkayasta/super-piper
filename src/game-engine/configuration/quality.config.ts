@@ -1,20 +1,14 @@
-import type { SceneryLayerId } from '../../content/art/scenery-layers';
 import type { QualityLevel } from '../core/game-events';
 
 export interface QualityEffects {
   readonly brickDebrisPieces: number;
   readonly sparkles: boolean;
   readonly cloudDrift: boolean;
-  readonly skippedSceneryLayers: readonly SceneryLayerId[];
+  readonly detailScenery: boolean;
 }
 
 export const QUALITY_EFFECTS: Readonly<Record<QualityLevel, QualityEffects>> = {
-  low: {
-    brickDebrisPieces: 2,
-    sparkles: false,
-    cloudDrift: false,
-    skippedSceneryLayers: ['bushes'],
-  },
-  medium: { brickDebrisPieces: 4, sparkles: true, cloudDrift: true, skippedSceneryLayers: [] },
-  high: { brickDebrisPieces: 4, sparkles: true, cloudDrift: true, skippedSceneryLayers: [] },
+  low: { brickDebrisPieces: 2, sparkles: false, cloudDrift: false, detailScenery: false },
+  medium: { brickDebrisPieces: 4, sparkles: true, cloudDrift: true, detailScenery: true },
+  high: { brickDebrisPieces: 4, sparkles: true, cloudDrift: true, detailScenery: true },
 };

@@ -8,6 +8,12 @@ export interface RunTotals {
   readonly coinsCollected: number;
 }
 
+export interface StageClock {
+  readonly timeLeft: number;
+  readonly unitsUsed: number;
+  readonly unitElapsedMs: number;
+}
+
 export class StageSession {
   private readonly state: HudState;
   private postmarkCount = 0;
@@ -22,16 +28,27 @@ export class StageSession {
     totals: RunTotals,
     private readonly rules: ScoringRules,
     postmarks = 0,
+    clock: StageClock | null = null,
   ) {
     this.state = {
       score: totals.score,
       coins: totals.coins,
-      timeLeft: timeLimit,
+      timeLeft: clock?.timeLeft ?? timeLimit,
       lives: totals.lives,
       power: 'small',
     };
     this.postmarkCount = postmarks;
     this.coinTotal = totals.coinsCollected;
+    this.unitsUsed = clock?.unitsUsed ?? 0;
+    this.unitElapsedMs = clock?.unitElapsedMs ?? 0;
+  }
+
+  clock(): StageClock {
+    return {
+      timeLeft: this.state.timeLeft,
+      unitsUsed: this.unitsUsed,
+      unitElapsedMs: this.unitElapsedMs,
+    };
   }
 
   get hud(): Readonly<HudState> {

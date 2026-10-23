@@ -17,11 +17,16 @@ export const Tile = {
   depotBattlement: 13,
   depotDoorTop: 14,
   depotDoor: 15,
+  lavaSurface: 16,
+  lavaSurfaceGlow: 17,
+  lavaSurfaceFlare: 18,
+  lava: 19,
+  gate: 20,
 } as const;
 
 export type TileId = (typeof Tile)[keyof typeof Tile];
 
-export const TILE_COUNT = 16;
+export const TILE_COUNT = 21;
 
 export const TILESET_LAYOUT = { tileSize: 16, columns: 4, margin: 1, spacing: 2 } as const;
 
@@ -38,6 +43,7 @@ export const SOLID_TILES: readonly TileId[] = [
   Tile.tubeTopRight,
   Tile.tubeBodyLeft,
   Tile.tubeBodyRight,
+  Tile.gate,
 ];
 
 export const STAR_BLOCK_CYCLE: readonly TileId[] = [
@@ -54,4 +60,17 @@ export function isStarBlock(tile: number): boolean {
 
 export function isGround(tile: number): boolean {
   return tile === Tile.groundTop || tile === Tile.ground;
+}
+
+export const LAVA_SURFACE_CYCLE: readonly TileId[] = [
+  Tile.lavaSurface,
+  Tile.lavaSurfaceGlow,
+  Tile.lavaSurfaceFlare,
+  Tile.lavaSurfaceGlow,
+];
+
+export function isLavaSurface(tile: number): boolean {
+  return (
+    tile === Tile.lavaSurface || tile === Tile.lavaSurfaceGlow || tile === Tile.lavaSurfaceFlare
+  );
 }

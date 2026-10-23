@@ -28,6 +28,22 @@ export const PIP_LOOK_PALETTES: Readonly<Record<PipLook, PixelPalette>> = {
     P: '#1c1c2e',
     B: '#3a2a4a',
   }),
+  mint: swapPalette(PIP_PALETTE, { C: '#4fd6b0', J: '#f2f6f0', Y: '#2f8f7a', P: '#3a4f6e' }),
+  sunset: swapPalette(PIP_PALETTE, { C: '#ff7a6a', J: '#7a2f66', Y: '#ffb347', P: '#3d2348' }),
+  royal: swapPalette(PIP_PALETTE, {
+    C: '#7b3fc4',
+    J: '#4b2a8a',
+    Y: '#ffcf3a',
+    P: '#24204a',
+    B: '#2e1a12',
+  }),
+  golden: swapPalette(PIP_PALETTE, {
+    C: '#ffd23a',
+    J: '#e8b02a',
+    Y: '#fff4d0',
+    P: '#2a2238',
+    B: '#4a2a12',
+  }),
   spark: swapPalette(PIP_PALETTE, { C: '#ffd23a', J: '#f4f0e8', Y: '#d8403a', P: '#22b3c8' }),
 };
 

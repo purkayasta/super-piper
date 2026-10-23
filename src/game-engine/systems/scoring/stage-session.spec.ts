@@ -130,4 +130,17 @@ describe('StageSession', () => {
     stage.convertTime(100);
     expect(stage.timeUsed).toBe(3);
   });
+
+  it('carries the clock into another area without losing a partial time unit', () => {
+    const first = session();
+    first.tick(SCORING.timeUnitMs * 3 + 150);
+    const clock = first.clock();
+    expect(clock).toEqual({ timeLeft: 397, unitsUsed: 3, unitElapsedMs: 150 });
+    const next = new StageSession(400, first.totals(), SCORING, 0, clock);
+    expect(next.hud.timeLeft).toBe(397);
+    next.tick(SCORING.timeUnitMs - 150);
+    expect(next.hud.timeLeft).toBe(396);
+    expect(next.timeUsed).toBe(4);
+  });
 });
+

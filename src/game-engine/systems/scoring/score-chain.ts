@@ -14,6 +14,10 @@ export class ScoreChain {
     this.index = startIndex;
   }
 
+  get length(): number {
+    return this.index - this.startIndex;
+  }
+
   next(): number {
     return ladderAward(this.ladder, this.index++);
   }

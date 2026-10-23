@@ -1,4 +1,12 @@
-export const PIP_OUTFITS = ['courier', 'forest', 'midnight'] as const;
+export const PIP_OUTFITS = [
+  'courier',
+  'forest',
+  'mint',
+  'midnight',
+  'sunset',
+  'royal',
+  'golden',
+] as const;
 
 export type PipOutfit = (typeof PIP_OUTFITS)[number];
 
@@ -144,3 +152,31 @@ export type ScoreLabel = (typeof SCORE_LABELS)[number];
 export function scoreFrameName(label: ScoreLabel): string {
   return `score/${label}`;
 }
+
+export const LIFT_WIDTHS = [2, 3, 4] as const;
+
+export function liftFrameName(widthTiles: number): string {
+  return `platform/lift-${widthTiles}`;
+}
+
+export const HazardFrame = {
+  fireball0: 'hazard/fireball-0',
+  fireball1: 'hazard/fireball-1',
+} as const;
+
+export const FIREBALL_FRAMES: readonly string[] = [HazardFrame.fireball0, HazardFrame.fireball1];
+
+export const BOSS_FRAME_SIZE = 32;
+
+export const BossFrame = {
+  idle: 'boss/rook-idle',
+  walk0: 'boss/rook-walk-0',
+  walk1: 'boss/rook-walk-1',
+  crouch: 'boss/rook-crouch',
+  jump: 'boss/rook-jump',
+  windup: 'boss/rook-windup',
+  throw: 'boss/rook-throw',
+  hurt: 'boss/rook-hurt',
+  stone0: 'boss/stone-0',
+  stone1: 'boss/stone-1',
+} as const;

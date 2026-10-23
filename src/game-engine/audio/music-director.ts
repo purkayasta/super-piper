@@ -6,6 +6,7 @@ export interface StageTracks {
   readonly star: MusicId;
   readonly clear: MusicId;
   readonly gameOver: MusicId;
+  readonly boss: MusicId | null;
 }
 
 type MusicPhase = 'playing' | 'silent' | 'clear' | 'game-over';
@@ -15,6 +16,7 @@ export class MusicDirector {
   private hurried = false;
   private warningMs = 0;
   private starActive = false;
+  private bossActive = false;
 
   constructor(
     private readonly tracks: StageTracks,
@@ -32,6 +34,7 @@ export class MusicDirector {
       case 'playing':
         if (this.warningMs > 0) return null;
         if (this.starActive) return this.tracks.star;
+        if (this.bossActive && this.tracks.boss !== null) return this.tracks.boss;
         return this.hurried ? this.tracks.hurry : this.tracks.stage;
     }
   }
@@ -42,6 +45,18 @@ export class MusicDirector {
 
   setStar(active: boolean): void {
     this.starActive = active;
+  }
+
+  startBoss(): void {
+    this.bossActive = true;
+  }
+
+  endBoss(): void {
+    this.bossActive = false;
+  }
+
+  startHurried(): void {
+    this.hurried = true;
   }
 
   beginHurry(): boolean {

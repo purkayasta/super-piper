@@ -37,6 +37,7 @@ class RecordedEvents implements ActorEvents {
   hurts = 0;
   bursts = 0;
   strikes = 0;
+  readonly combos: string[] = [];
 
   award(points: number): void {
     this.awards.push(points);
@@ -55,6 +56,9 @@ class RecordedEvents implements ActorEvents {
   }
   strike(): void {
     this.strikes++;
+  }
+  combo(kind: string, length: number): void {
+    this.combos.push(`${kind}-${length}`);
   }
 }
 
@@ -135,6 +139,7 @@ describe('StageActors and Pip', () => {
     expect(events.strikes).toBe(0);
     expect(events.awards).toEqual([100]);
     expect(events.hurts).toBe(0);
+    expect(events.combos).toEqual(['stomp-1']);
     expect(actors.enemies[0].mode).toBe('squashed');
   });
 
@@ -232,6 +237,7 @@ describe('StageActors shells', () => {
     expect(actors.enemies[1].mode === 'knocked' || !actors.enemies[1].active).toBe(true);
     expect(events.awards).toEqual([500, 800]);
     expect(events.strikes).toBe(2);
+    expect(events.combos).toEqual(['shell-1', 'shell-2']);
   });
 });
 

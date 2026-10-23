@@ -6,8 +6,9 @@ import { EMPTY_TILE, Tile } from './tile-ids';
 export const LEVEL_ROWS = 15;
 export const VIEW_COLUMNS = 27;
 export const GOAL_POLE_HEIGHT_TILES = 9;
+export const BOSS_SIZE_TILES = 2;
 
-export type LegendLayer = 'collision' | 'decoration' | 'none';
+export type LegendLayer = 'collision' | 'decoration' | 'hazard' | 'none';
 
 export type LegendMarker = 'start' | 'coin' | 'hidden';
 
@@ -30,6 +31,9 @@ export const LegendSymbol = {
   depotBattlement: 'm',
   depotDoorTop: 'a',
   depotDoor: 'd',
+  lavaSurface: '~',
+  lava: '=',
+  gate: 'g',
 } as const;
 
 export const LEVEL_LEGEND: Readonly<Record<string, LegendEntry>> = {
@@ -45,6 +49,9 @@ export const LEVEL_LEGEND: Readonly<Record<string, LegendEntry>> = {
   [LegendSymbol.depotBattlement]: { layer: 'decoration', tile: Tile.depotBattlement },
   [LegendSymbol.depotDoorTop]: { layer: 'decoration', tile: Tile.depotDoorTop },
   [LegendSymbol.depotDoor]: { layer: 'decoration', tile: Tile.depotDoor },
+  [LegendSymbol.lavaSurface]: { layer: 'hazard', tile: Tile.lavaSurface },
+  [LegendSymbol.lava]: { layer: 'hazard', tile: Tile.lava },
+  [LegendSymbol.gate]: { layer: 'collision', tile: Tile.gate },
 };
 
 export const PLACED_ENEMY_KINDS = ['thornbug', 'shellback', 'flapjack'] as const;
@@ -65,12 +72,56 @@ export const ITEM_BLOCK_SYMBOLS: readonly string[] = [
 
 export const CHECKPOINT_HEIGHT_TILES = 2;
 
+export type AreaId = string;
+
+export const MAIN_AREA: AreaId = 'main';
+
+export type AreaRole = 'stage' | 'bonus';
+
+export interface TubeLink {
+  readonly area: AreaId;
+  readonly tube: string;
+}
+
 export interface TubeEntity {
   readonly kind: 'tube';
   readonly column: number;
   readonly topRow: number;
-  readonly destination: StageId | null;
+  readonly id?: string;
+  readonly destination: TubeLink | null;
   readonly snapvine?: boolean;
+}
+
+export const PLATFORM_WIDTHS = { min: 2, max: 4 } as const;
+
+export interface PlatformEntity {
+  readonly kind: 'platform';
+  readonly column: number;
+  readonly row: number;
+  readonly width: number;
+  readonly travelX: number;
+  readonly travelY: number;
+  readonly periodSeconds: number;
+  readonly phase: number;
+}
+
+export const FIREBAR_SEGMENTS = { min: 2, max: 8 } as const;
+
+export const FIREBAR_MAX_TURNS_PER_SECOND = 1;
+
+export interface FirebarEntity {
+  readonly kind: 'firebar';
+  readonly column: number;
+  readonly row: number;
+  readonly segments: number;
+  readonly turnsPerSecond: number;
+  readonly startDegrees: number;
+}
+
+export interface BossEntity {
+  readonly kind: 'boss';
+  readonly column: number;
+  readonly gateColumn: number;
 }
 
 export interface EnemyEntity {
@@ -104,17 +155,29 @@ export interface PostmarkEntity {
 }
 
 export type LevelEntity =
-  TubeEntity | GoalEntity | PostmarkEntity | EnemyEntity | ItemBlockEntity | CheckpointEntity;
+  | TubeEntity
+  | GoalEntity
+  | PostmarkEntity
+  | EnemyEntity
+  | ItemBlockEntity
+  | CheckpointEntity
+  | PlatformEntity
+  | FirebarEntity
+  | BossEntity;
 
-export interface LevelDefinition {
-  readonly id: StageId;
-  readonly label: string;
+export interface AreaDefinition {
   readonly theme: SceneryTheme;
   readonly music: StageMusicId;
-  readonly timeLimit: number;
-  readonly targetTime: number;
   readonly rows: readonly string[];
   readonly entities: readonly LevelEntity[];
+}
+
+export interface LevelDefinition extends AreaDefinition {
+  readonly id: StageId;
+  readonly label: string;
+  readonly timeLimit: number;
+  readonly targetTime: number;
+  readonly areas?: Readonly<Record<AreaId, AreaDefinition>>;
 }
 
 export interface CellCoordinate {
@@ -126,7 +189,35 @@ export interface CompiledTube {
   readonly column: number;
   readonly topRow: number;
   readonly bottomRow: number;
-  readonly destination: StageId | null;
+  readonly id: string | null;
+  readonly destination: TubeLink | null;
+}
+
+export interface CompiledPlatform {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly travelX: number;
+  readonly travelY: number;
+  readonly periodSeconds: number;
+  readonly phase: number;
+}
+
+export interface CompiledFirebar {
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly segments: number;
+  readonly turnsPerSecond: number;
+  readonly startRadians: number;
+}
+
+export interface CompiledBoss {
+  readonly centerX: number;
+  readonly groundY: number;
+  readonly gateColumn: number;
+  readonly gateRows: readonly number[];
+  readonly arenaLeftPx: number;
+  readonly arenaRightPx: number;
 }
 
 export interface CompiledGoal {
@@ -152,14 +243,18 @@ export interface CompiledLevel {
   readonly height: number;
   readonly collision: number[][];
   readonly decoration: number[][];
+  readonly hazard: number[][];
   readonly start: CellCoordinate;
   readonly coins: readonly CellCoordinate[];
   readonly postmarks: readonly CellCoordinate[];
   readonly tubes: readonly CompiledTube[];
-  readonly goal: CompiledGoal;
+  readonly goal: CompiledGoal | null;
   readonly doorColumn: number | null;
   readonly enemies: readonly EnemySpawn[];
   readonly blockItems: readonly BlockItemCell[];
   readonly hiddenBlocks: readonly CellCoordinate[];
   readonly checkpoint: CellCoordinate | null;
+  readonly platforms: readonly CompiledPlatform[];
+  readonly firebars: readonly CompiledFirebar[];
+  readonly boss: CompiledBoss | null;
 }

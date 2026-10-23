@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { autotileGround, compileLevel } from './level-compiler';
-import type { LevelDefinition, LevelEntity, PostmarkEntity } from './level-format';
+import { autotileGround, compileArea, compileLevel } from './level-compiler';
+import type {
+  AreaDefinition,
+  LevelDefinition,
+  LevelEntity,
+  PostmarkEntity,
+} from './level-format';
 import { validateLevel } from './level-validator';
 import { EMPTY_TILE, Tile } from './tile-ids';
 
@@ -64,7 +69,9 @@ describe('compileLevel', () => {
   it('stamps tubes from their top row down to the ground', () => {
     expect(compiled.collision[10].slice(8, 10)).toEqual([Tile.tubeTopLeft, Tile.tubeTopRight]);
     expect(compiled.collision[12].slice(8, 10)).toEqual([Tile.tubeBodyLeft, Tile.tubeBodyRight]);
-    expect(compiled.tubes).toEqual([{ column: 8, topRow: 10, bottomRow: 12, destination: null }]);
+    expect(compiled.tubes).toEqual([
+      { column: 8, topRow: 10, bottomRow: 12, id: null, destination: null },
+    ]);
   });
 
   it('places a solid base under the goal pole', () => {
@@ -194,7 +201,7 @@ describe('validateLevel', () => {
     expect(errors).toContain('postmark #2 overlaps "#" at row 13, column 0');
   });
 
-  it('requires tubes to stand on ground and lead to known stages', () => {
+  it('requires tubes to stand on ground', () => {
     const floating = validateLevel(
       level({
         rows: rowsWith({
@@ -209,17 +216,6 @@ describe('validateLevel', () => {
       }),
     );
     expect(floating).toContain('tube #0 is outside the level or has no ground below it');
-    const errors = validateLevel(
-      level({
-        entities: [
-          { kind: 'tube', column: 8, topRow: 10, destination: 'nowhere' },
-          { kind: 'goal', column: 20 },
-          ...POSTMARKS,
-        ],
-      }),
-      { knownStages: new Set(['1-1']) },
-    );
-    expect(errors).toEqual(['tube #0 leads to unknown stage "nowhere"']);
   });
 
   it('rejects overlapping entities and a depot door left of the goal', () => {

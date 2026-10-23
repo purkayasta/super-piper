@@ -1,8 +1,7 @@
 import type Phaser from 'phaser';
 import {
-  SCENERY_BY_THEME,
   SCENERY_RESOLUTIONS,
-  type SceneryLayerId,
+  sceneryLayersFor,
   type SceneryLayerSpec,
   type SceneryResolution,
   type SceneryTheme,
@@ -27,13 +26,13 @@ export class ParallaxRenderer {
     theme: SceneryTheme,
     resolution: SceneryResolution,
     baseDepth: number,
-    skippedLayers: readonly SceneryLayerId[],
+    includeDetail: boolean,
     private readonly drifting: boolean,
   ) {
     const scale = 1 / SCENERY_RESOLUTIONS[resolution];
-    SCENERY_BY_THEME[theme].forEach((spec, index) => {
+    sceneryLayersFor(theme, includeDetail).forEach((spec, index) => {
       const key = sceneryAssetId(theme, spec.id, resolution);
-      if (skippedLayers.includes(spec.id) || !scene.textures.exists(key)) return;
+      if (!scene.textures.exists(key)) return;
       const count = spec.scrollFactor === 0 ? 1 : stripCopiesNeeded(spec.stripWidth, LOGICAL_WIDTH);
       const copies = Array.from({ length: count }, () =>
         scene.add

@@ -31,6 +31,18 @@ export interface HudState {
   power: PowerForm;
 }
 
+export const MILESTONES = ['stomp-chain', 'shell-chain', 'bonus-room'] as const;
+
+export type Milestone = (typeof MILESTONES)[number];
+
+export interface RunStats {
+  hits: number;
+  finishPower: PowerForm;
+  bossDefeated: boolean;
+  bossStompHits: number;
+  milestones: readonly Milestone[];
+}
+
 export interface StageResult {
   stageId: StageId;
   score: number;
@@ -41,6 +53,7 @@ export interface StageResult {
   postmarks: number;
   postmarksCollected: readonly number[];
   postmarkTotal: number;
+  stats: RunStats;
 }
 
 export type GameCommand =
@@ -60,6 +73,8 @@ export type GameEvent =
   | { type: 'checkpoint'; stageId: StageId; column: number }
   | { type: 'playerDied'; stageId: StageId; livesLeft: number }
   | { type: 'gameOver'; result: StageResult }
+  | { type: 'milestone'; stageId: StageId; milestone: Milestone }
+  | { type: 'bossDefeated'; stageId: StageId }
   | { type: 'pauseRequested' }
   | { type: 'paused' }
   | { type: 'resumed' }

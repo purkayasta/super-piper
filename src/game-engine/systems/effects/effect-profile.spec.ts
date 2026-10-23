@@ -10,7 +10,7 @@ describe('effectProfile', () => {
       brickDebrisPieces: 4,
       sparkles: true,
       cloudDrift: true,
-      skippedSceneryLayers: [],
+      detailScenery: true,
       screenShake: true,
     });
   });
@@ -20,7 +20,7 @@ describe('effectProfile', () => {
       brickDebrisPieces: 4,
       sparkles: true,
       cloudDrift: true,
-      skippedSceneryLayers: [],
+      detailScenery: true,
     });
   });
 
@@ -29,7 +29,7 @@ describe('effectProfile', () => {
       brickDebrisPieces: 2,
       sparkles: false,
       cloudDrift: false,
-      skippedSceneryLayers: ['bushes'],
+      detailScenery: false,
     });
   });
 

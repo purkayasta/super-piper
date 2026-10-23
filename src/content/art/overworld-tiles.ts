@@ -206,6 +206,7 @@ export const OVERWORLD_TILE_ART: Readonly<Record<TileId, () => Raster>> = {
     fillRect(tile, SIZE - 2, 0, 1, SIZE, DEPOT.doorEdge);
     return tile;
   },
+  ...sharedHazardTileArt(),
 };
 
 function dirtTile(): Raster {
@@ -282,3 +283,121 @@ function tubeBodyTile(side: 'left' | 'right', fromRow: number, toRow: number): R
 function pixelHash(x: number, y: number): number {
   return ((x * 73856093) ^ (y * 19349663)) >>> 0;
 }
+
+const LAVA = {
+  crest: parseHex('#fff3a0'),
+  surface: parseHex('#ffc230'),
+  hot: parseHex('#ff8a1c'),
+  body: parseHex('#e8501a'),
+  deep: parseHex('#b02a14'),
+  glow: parseHex('#ffb03060'),
+  ember: parseHex('#ffe27a'),
+} as const;
+
+const LAVA_WAVE_TOP = 4;
+const LAVA_WAVE_AMPLITUDE = 1.2;
+
+const GATE = {
+  recess: parseHex('#231a2c'),
+  iron: parseHex('#6c6a7c'),
+  ironLight: parseHex('#a8a6b8'),
+  ironDark: parseHex('#3a3848'),
+} as const;
+
+const GATE_BAR_COLUMNS: readonly number[] = [1, 6, 11];
+const GATE_CROSSBARS: readonly number[] = [3, 11];
+
+export function lavaSurfaceTile(phase: number, flare: boolean): Raster {
+  const tile = createRaster(SIZE, SIZE);
+  for (let x = 0; x < SIZE; x++) {
+    const wave = Math.sin(((x + phase * 4) / SIZE) * 2 * Math.PI) * LAVA_WAVE_AMPLITUDE;
+    const crest = Math.round(LAVA_WAVE_TOP + wave);
+    setPixel(tile, x, crest - 1, LAVA.glow);
+    for (let y = crest; y < SIZE; y++) {
+      const depth = y - crest;
+      const color =
+        depth === 0
+          ? LAVA.crest
+          : depth === 1
+            ? LAVA.surface
+            : depth < 5
+              ? LAVA.hot
+              : depth < 9
+                ? LAVA.body
+                : LAVA.deep;
+      setPixel(tile, x, y, color);
+    }
+  }
+  for (let x = 0; x < SIZE; x++) {
+    const speckle = pixelHash(x + phase * 7, 3) % 11;
+    if (speckle === 0) setPixel(tile, x, 11, LAVA.hot);
+  }
+  if (flare) {
+    const flareX = 5 + phase * 3;
+    setPixel(tile, flareX, 1, LAVA.ember);
+    setPixel(tile, flareX + 1, 2, LAVA.surface);
+    setPixel(tile, flareX + 6, 0, LAVA.ember);
+    setPixel(tile, flareX - 1, 2, LAVA.surface);
+  }
+  return tile;
+}
+
+export function deepLavaTile(): Raster {
+  const tile = solidTile(LAVA.body);
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      const blob = pixelHash(x >> 1, y >> 1) % 7;
+      if (blob === 0) setPixel(tile, x, y, LAVA.deep);
+      else if (blob === 1) setPixel(tile, x, y, LAVA.hot);
+    }
+  }
+  return tile;
+}
+
+export function gateTile(): Raster {
+  const tile = solidTile(GATE.recess);
+  for (const row of GATE_CROSSBARS) {
+    fillRect(tile, 0, row, SIZE, 2, GATE.iron);
+    fillRect(tile, 0, row, SIZE, 1, GATE.ironLight);
+  }
+  for (const column of GATE_BAR_COLUMNS) {
+    fillRect(tile, column, 0, 3, SIZE, GATE.iron);
+    fillRect(tile, column, 0, 1, SIZE, GATE.ironLight);
+    fillRect(tile, column + 2, 0, 1, SIZE, GATE.ironDark);
+    for (const row of GATE_CROSSBARS) setPixel(tile, column + 1, row, GATE.ironLight);
+  }
+  fillRect(tile, 0, 0, SIZE, 1, OUTLINE);
+  return tile;
+}
+
+type HazardTileId =
+  | typeof Tile.lavaSurface
+  | typeof Tile.lavaSurfaceGlow
+  | typeof Tile.lavaSurfaceFlare
+  | typeof Tile.lava
+  | typeof Tile.gate;
+
+export function sharedHazardTileArt(): Readonly<Record<HazardTileId, () => Raster>> {
+  return {
+    [Tile.lavaSurface]: () => lavaSurfaceTile(0, false),
+    [Tile.lavaSurfaceGlow]: () => lavaSurfaceTile(1, false),
+    [Tile.lavaSurfaceFlare]: () => lavaSurfaceTile(2, true),
+    [Tile.lava]: deepLavaTile,
+    [Tile.gate]: gateTile,
+  };
+}
+
+export {
+  BATTLEMENT,
+  BRICK_COURSES,
+  STAR_BLOCK,
+  STAR_BLOCK_PALETTE,
+  STAR_GLINT_PALETTE,
+  STAR_SHINE_PALETTE,
+  bevelledTile,
+  gridTile,
+  pixelHash,
+  solidTile,
+  tubeBodyTile,
+  tubeRimTile,
+};

@@ -7,6 +7,7 @@ const TRACKS: StageTracks = {
   star: 'music.star',
   clear: 'music.stage-clear',
   gameOver: 'music.game-over',
+  boss: 'music.boss',
 };
 const WARNING_MS = 1500;
 
@@ -62,5 +63,29 @@ describe('MusicDirector', () => {
     expect(music.track).toBe('music.game-over');
     music.silence();
     expect(music.track).toBe('music.game-over');
+  });
+
+  it('plays the boss theme during the fight, under star music, then the stage theme again', () => {
+    const music = director();
+    music.startBoss();
+    expect(music.track).toBe('music.boss');
+    music.setStar(true);
+    expect(music.track).toBe('music.star');
+    music.setStar(false);
+    music.endBoss();
+    expect(music.track).toBe('music.overworld');
+  });
+
+  it('ignores the boss in a stage without one', () => {
+    const music = new MusicDirector({ ...TRACKS, boss: null }, WARNING_MS);
+    music.startBoss();
+    expect(music.track).toBe('music.overworld');
+  });
+
+  it('can start straight on the hurry loop without the warning', () => {
+    const music = director();
+    music.startHurried();
+    expect(music.track).toBe('music.overworld-hurry');
+    expect(music.beginHurry()).toBe(false);
   });
 });
