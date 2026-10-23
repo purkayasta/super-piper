@@ -51,6 +51,7 @@ export interface ActorEvents {
   hurtPip(): void;
   collectPowerUp(kind: PowerUpKind, x: number, y: number): void;
   parcelBurst(x: number, y: number): void;
+  strike(): void;
 }
 
 export interface StageActorsConfig {
@@ -183,6 +184,7 @@ export class StageActors {
       if (!enemy.alive || enemy.mode === 'fly' || enemy.mode === 'plant') continue;
       if (!standsOn(enemy.body, left, size, top, reach)) continue;
       enemy.knockOut(enemy.centerX < centerX ? -1 : 1);
+      this.events.strike();
       this.award(this.config.enemyPoints[enemy.kind], enemy);
     }
     const items = this.powerUps;
@@ -239,6 +241,7 @@ export class StageActors {
         if (aSliding && bSliding) {
           a.knockOut(b.facing);
           b.knockOut(a.facing);
+          this.events.strike();
           this.award(this.config.enemyPoints[a.kind], a);
           this.award(this.config.enemyPoints[b.kind], b);
         } else if (aSliding) {
@@ -256,6 +259,7 @@ export class StageActors {
 
   private knockWithShell(shell: Enemy, victim: Enemy): void {
     victim.knockOut(shell.facing);
+    this.events.strike();
     this.award(ladderAward(this.config.ladder, shell.chainIndex++), victim);
   }
 
@@ -269,6 +273,7 @@ export class StageActors {
         const enemy = enemies[j];
         if (!enemy.alive || !enemy.exposed || !boxesOverlap(parcel.body, enemy.body)) continue;
         enemy.knockOut(parcel.facing);
+        this.events.strike();
         this.award(this.config.enemyPoints[enemy.kind], enemy);
         this.burst(parcel);
         break;
@@ -288,9 +293,11 @@ export class StageActors {
       const away: 1 | -1 = pipCenterX < enemy.centerX ? 1 : -1;
       if (pip.starPower) {
         enemy.knockOut(away);
+        this.events.strike();
         this.award(this.starChain.next(), enemy);
       } else if (enemy.mode === 'shell') {
         enemy.kick(away, this.config.shellChainStart);
+        this.events.strike();
         this.award(this.config.kickPoints, enemy);
       } else if (enemy.mode !== 'plant' && this.isStomp(pip, enemy)) {
         enemy.stomp();

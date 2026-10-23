@@ -65,3 +65,32 @@ Not measured or not verified (no review this phase):
 - [ ] **e2e has not been run** this phase.
 
 Verified headlessly (not a substitute for the review): a scripted run through 1-1 in Chromium, with a temporary debug hook since reverted, exercised grow, brick break, crouch, Spark throwing (two-parcel cap), shrink with invulnerability, the Rush Star tint, the hidden Green Stamp, the checkpoint and respawn, a time-out death, GAME OVER and Retry, and the goal tally to DELIVERED!, with no console errors. It found and fixed two bugs: clean-up crashed on restart (Arcade nulls `physics.world` before scene clean-up), and an item could be collected while still emerging.
+
+## Phase 5: Sound and music
+
+Review checklist from `docs/plan.md`:
+
+- [ ] Every action has a satisfying sound. **Needs ears:** nobody has listened to any of it.
+- [ ] The music is catchy and original. **Needs ears.** Overworld, underground, sky, castle, boss, Rush Star, menu, stage clear and game over were written to avoid SMB's melodies, rhythms and contours, but check each by ear against the 1-1, underground, star, castle and flag tunes, and the death, coin, 1-up and power-up sounds.
+- [ ] Audio starts correctly after the first click or keypress (browser autoplay rules).
+- [ ] There is no audio crackle or frame hitch when sounds play. **Not measured.**
+
+Not measured or not verified (no review this phase):
+
+- [ ] **Listen to everything.** Play `public/assets/generated/audio/**/*.flac` after `npm run assets`, then in game. Check the mix (triangle bass against the pulses, the drums' noise level), the default volumes (master 0.8, music 0.6, SFX 0.8, squared gain), and that SFX cut through the music.
+- [ ] **Loop seams.** Let the overworld, menu and Rush Star loops wrap several times. The tails are folded back and the filters run circularly, so there should be no click or gap.
+- [ ] **Hurry.** At 100 time units left the music stops, the warning plays, and the overworld returns at 1.3× tempo. Take a Rush Star during the hurry: star music plays, then the hurry loop comes back.
+- [ ] **Goal and death timing.** The goal slide plays on the grab and the clear fanfare starts as Pip leaves the pole, over the tally ticks (12.5 a second). Check it isn't cluttered. A pit death now waits 2.8 s like a hit death (was 1.2 s), so the 2.4 s death jingle finishes before the restart. Check the pit wait doesn't feel long.
+- [ ] **Unlock edge cases.** A cold start on the menu is silent until the first click or key, then the menu loop starts. That first click's select sound is dropped, because nothing is decoded until audio unlocks. A reload straight into `#/play/1-1` is silent until the first key press, then the stage music starts from the top.
+- [ ] **Hitches.** Watch the dev overlay for long frames while coins, stomps and bricks fire together and when music switches (star, goal, death). Each sound starts two Web Audio nodes; nothing is decoded during play.
+- [ ] **First stage load.** 1-1 fetches about 1.7 MB of audio (theme, hurry, star, clear, game over and every SFX) alongside the scenery. Audio does not hold up the stage: music starts as soon as its decode finishes. Check how long that takes on a cold cache.
+- [ ] **Decoded memory.** Decoded buffers live for the app's lifetime. 1-1's set plus the menu is about 85 s of audio, roughly 16 MB at a 48 kHz output. Preparing a different stage releases the old stage's theme, hurry and boss music (`musicToRelease`). Measure it, and check the 20-restart heap test still passes.
+- [ ] **Other browsers.** FLAC decoding was checked in Chromium only, bit-exactly. Check Firefox and Safari decode, and the iOS Safari unlock (it needs the silent primer buffer started inside the gesture).
+- [ ] **Tab switching.** Hiding the tab suspends the audio context and showing it resumes. Check music doesn't drift from the game after a long switch.
+- [ ] **e2e has not been run** this phase.
+
+Built but not reachable yet (later phases):
+
+- The pause chime and held music run on the bridge's `pause` and `resume` commands, which nothing sends until Phase 6's pause overlay.
+- The volume UI is Phase 6. It binds to `AudioService.volumes`, `setVolume(channel, value)` and `setVolumes(partial)`, and persists them through the save service.
+- `sfx.menu-move` waits for Phase 6's menus. `sfx.tube` and `sfx.boss-hit` wait for Phase 7's tubes and boss. The underground, sky, castle and boss music (and their hurry variants) are rendered and in the manifest, ready for Phase 7's stages.

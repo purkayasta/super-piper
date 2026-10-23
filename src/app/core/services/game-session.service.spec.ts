@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import type { GameBridge } from '../../../game-engine/core/game-bridge';
 import type { HudState, PerfSample, StageResult } from '../../../game-engine/core/game-events';
 import { GAME_FACTORY, type GameHandle, type GameOptions } from '../game-factory.token';
+import { AudioService } from './audio.service';
 import { GameSessionService } from './game-session.service';
 
 const options: GameOptions = { quality: 'high', devTools: true, initialStageId: 'test-room' };
@@ -38,11 +39,19 @@ describe('GameSessionService', () => {
     host = document.createElement('div');
   });
 
+  it('stops every sound when the game is detached', () => {
+    const stopAll = vi.spyOn(TestBed.inject(AudioService), 'stopAll');
+    service.attach(host, options);
+    service.detach();
+    expect(stopAll).toHaveBeenCalledTimes(1);
+  });
+
   it('calls the factory once with the host on attach', () => {
     service.attach(host, options);
     expect(factory).toHaveBeenCalledTimes(1);
     expect(factory.mock.calls[0][0]).toBe(host);
     expect(factory.mock.calls[0][2]).toBe(options);
+    expect(factory.mock.calls[0][3]).toBe(TestBed.inject(AudioService).gameAudio);
   });
 
   it('throws on a second attach', () => {

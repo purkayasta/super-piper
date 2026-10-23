@@ -41,6 +41,19 @@ function walkOffDrop(hz: number, ledgeTime: number, fallSeconds: number): number
 }
 
 describe('PlayerController', () => {
+  it('reports a launch only for the step the jump left the ground', () => {
+    const controller = new PlayerController(DEFAULT_MOVEMENT);
+    stepMany(controller, 2);
+    expect(controller.justLaunched).toBe(false);
+    controller.step(actions({ jump: true }), GROUND, DT);
+    expect(controller.justLaunched).toBe(true);
+    controller.step(actions({ jump: true }), AIR, DT);
+    expect(controller.justLaunched).toBe(false);
+    controller.bounce(200);
+    controller.step(actions({ jump: true }), AIR, DT);
+    expect(controller.justLaunched).toBe(false);
+  });
+
   it('walking accelerates to walk max and no further', () => {
     const controller = simulate(HZ, 3, () => actions({ right: true }));
     expect(controller.vx).toBeCloseTo(93.75, 2);

@@ -28,6 +28,7 @@ export class PlayerController {
   private msSinceGrounded = Infinity;
   private msSinceJumpPress = Infinity;
   private jumpHeldLastStep = true;
+  private launchedThisStep = false;
 
   private segmentVelocity = 0;
   private segmentAverage = 0;
@@ -61,6 +62,10 @@ export class PlayerController {
     return this.currentMode;
   }
 
+  get justLaunched(): boolean {
+    return this.launchedThisStep;
+  }
+
   setTuning(tuning: MovementTuning): void {
     this.tuning = tuning;
   }
@@ -78,6 +83,7 @@ export class PlayerController {
     this.msSinceGrounded = Infinity;
     this.msSinceJumpPress = Infinity;
     this.jumpHeldLastStep = true;
+    this.launchedThisStep = false;
   }
 
   bounce(speed: number): void {
@@ -95,6 +101,7 @@ export class PlayerController {
   }
 
   step(actions: ActionState, contacts: Contacts, dtSeconds: number): void {
+    this.launchedThisStep = false;
     const dt = Math.min(dtSeconds, this.tuning.maxStepSeconds);
     if (!(dt > 0)) return;
 
@@ -163,6 +170,7 @@ export class PlayerController {
     this.fallGravityLocked = false;
     this.msSinceGrounded = Infinity;
     this.msSinceJumpPress = Infinity;
+    this.launchedThisStep = true;
   }
 
   private stepGroundHorizontal(input: number, run: boolean, dt: number): void {

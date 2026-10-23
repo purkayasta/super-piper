@@ -1,4 +1,5 @@
 import type { SceneryTheme } from '../../content/art/scenery-layers';
+import type { StageMusicId } from '../../content/audio/sound-ids';
 import type { StageId } from '../core/game-events';
 import { EMPTY_TILE, Tile } from './tile-ids';
 
@@ -109,7 +110,7 @@ export interface LevelDefinition {
   readonly id: StageId;
   readonly label: string;
   readonly theme: SceneryTheme;
-  readonly music: string;
+  readonly music: StageMusicId;
   readonly timeLimit: number;
   readonly targetTime: number;
   readonly rows: readonly string[];

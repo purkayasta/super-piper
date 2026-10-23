@@ -9,7 +9,7 @@ import { SandboxScene } from '../scenes/sandbox.scene';
 import { TestRoomScene } from '../scenes/test-room.scene';
 import { createGameConfig } from './game-config';
 
-export const createGame: GameFactory = (parent, bridge, options) => {
+export const createGame: GameFactory = (parent, bridge, options, audio) => {
   const initialZoom = computeZoom(
     parent.clientWidth || window.innerWidth,
     parent.clientHeight || window.innerHeight,
@@ -26,6 +26,7 @@ export const createGame: GameFactory = (parent, bridge, options) => {
     preBoot: (preBootGame) => {
       writeRegistry(preBootGame.registry, 'bridge', bridge);
       writeRegistry(preBootGame.registry, 'options', options);
+      writeRegistry(preBootGame.registry, 'audio', audio);
       writeRegistry(preBootGame.registry, 'zoom', initialZoom);
     },
     postBoot: (bootedGame) => {

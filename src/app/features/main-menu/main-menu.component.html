@@ -1,7 +1,9 @@
 <main class="menu">
   <h1 class="title">PIP'S DELIVERY</h1>
-  <a class="play" [routerLink]="['/play', firstStageId]">Play</a>
+  <a class="play" [routerLink]="['/play', firstStageId]" (click)="confirmSelection()">Play</a>
   @if (devTools) {
-    <a class="dev-link" [routerLink]="['/play', testRoomStageId]">Test room</a>
+    <a class="dev-link" [routerLink]="['/play', testRoomStageId]" (click)="confirmSelection()">
+      Test room
+    </a>
   }
 </main>

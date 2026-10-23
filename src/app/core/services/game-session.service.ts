@@ -8,6 +8,7 @@ import type {
   StageResult,
 } from '../../../game-engine/core/game-events';
 import { GAME_FACTORY, type GameHandle, type GameOptions } from '../game-factory.token';
+import { AudioService } from './audio.service';
 
 interface ActiveSession {
   readonly handle: GameHandle;
@@ -17,6 +18,7 @@ interface ActiveSession {
 @Injectable()
 export class GameSessionService {
   private readonly factory = inject(GAME_FACTORY);
+  private readonly audio = inject(AudioService);
   private readonly loadedState = signal(false);
   private readonly pausedState = signal(false);
   private readonly perfState = signal<PerfSample | null>(null);
@@ -49,7 +51,7 @@ export class GameSessionService {
     const bridge = new GameBridge();
     bridge.onEvent((event) => this.applyEvent(event));
     try {
-      this.session = { bridge, handle: this.factory(host, bridge, options) };
+      this.session = { bridge, handle: this.factory(host, bridge, options, this.audio.gameAudio) };
     } catch (error) {
       bridge.dispose();
       throw error;
@@ -70,6 +72,7 @@ export class GameSessionService {
     this.session = null;
     session.handle.destroy();
     session.bridge.dispose();
+    this.audio.stopAll();
   }
 
   private applyEvent(event: GameEvent): void {

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { sceneKeyForStage } from '../../content/manifests/level-manifest';
 import { cacheRefreshHz, getCachedRefreshHz } from '../bootstrap/refresh-rate-cache';
 import { detectRefreshRate } from '../core/display';
-import { readBridge, readOptions, writeRegistry } from '../core/registry-keys';
+import { readAudio, readBridge, readOptions, writeRegistry } from '../core/registry-keys';
 
 const REFRESH_SAMPLE_COUNT = 30;
 
@@ -16,6 +16,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     this.deltas.length = 0;
+    readAudio(this.registry)?.playMusic(null);
     const stageId = readOptions(this.registry)!.initialStageId;
     this.stageSceneKey = sceneKeyForStage(stageId);
     if (this.stageSceneKey === null) {

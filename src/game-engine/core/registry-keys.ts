@@ -1,3 +1,4 @@
+import type { GameAudio } from '../audio/game-audio';
 import type { GameBridge } from './game-bridge';
 import type { GameOptions } from './game-factory';
 
@@ -9,6 +10,7 @@ export interface RegistryLike {
 export interface RegistryValues {
   bridge: GameBridge;
   options: GameOptions;
+  audio: GameAudio;
   zoom: number;
   refreshHz: number;
 }
@@ -35,6 +37,7 @@ export function writeRegistry<K extends RegistryKey>(
 }
 
 export const readBridge = (registry: RegistryLike) => readRegistry(registry, 'bridge');
+export const readAudio = (registry: RegistryLike) => readRegistry(registry, 'audio');
 export const readOptions = (registry: RegistryLike) => readRegistry(registry, 'options');
 export const readZoom = (registry: RegistryLike) => readRegistry(registry, 'zoom');
 export const readRefreshHz = (registry: RegistryLike) => readRegistry(registry, 'refreshHz');

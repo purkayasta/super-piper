@@ -1,3 +1,4 @@
+import { isStageMusic } from '../../content/audio/sound-ids';
 import type { StageId } from '../core/game-events';
 import {
   BLOCK_ITEMS,
@@ -28,6 +29,7 @@ export function validateLevel(level: LevelDefinition, options: ValidationOptions
   errors.push(...validateSymbols(level));
   errors.push(...validateStart(level));
   errors.push(...validateTiming(level));
+  if (!isStageMusic(level.music)) errors.push(`Music "${level.music}" is not a stage theme`);
   errors.push(...validateEntities(level, options));
   return errors;
 }

@@ -21,7 +21,7 @@ export const DEATH_RULES = {
   launchSpeed: 330,
   gravity: 900,
   durationMs: 2800,
-  pitDurationMs: 1200,
+  pitDurationMs: 2800,
 } as const;
 
 export type DeathRules = { readonly [K in keyof typeof DEATH_RULES]: number };

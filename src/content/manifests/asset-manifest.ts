@@ -1,4 +1,5 @@
 import type { QualityLevel } from '../../game-engine/core/game-events';
+import { MUSIC_IDS, SFX_IDS, soundFileName, type SoundId } from '../audio/sound-ids';
 import {
   SCENERY_BY_THEME,
   SCENERY_RESOLUTIONS,
@@ -9,7 +10,7 @@ import {
 
 export type AssetId = string;
 
-export type AssetKind = 'atlas' | 'tileset' | 'scenery';
+export type AssetKind = 'atlas' | 'tileset' | 'scenery' | 'sound';
 
 export interface AssetEntry {
   readonly id: AssetId;
@@ -19,6 +20,7 @@ export interface AssetEntry {
   readonly theme?: SceneryTheme;
   readonly layer?: SceneryLayerId;
   readonly resolution?: SceneryResolution;
+  readonly sound?: SoundId;
 }
 
 export const GENERATED_ASSET_ROOT = 'assets/generated';
@@ -69,6 +71,14 @@ function buildManifest(): Record<AssetId, AssetEntry> {
         });
       }
     }
+  }
+  for (const sound of [...SFX_IDS, ...MUSIC_IDS]) {
+    entries.push({
+      id: sound,
+      kind: 'sound',
+      path: `${GENERATED_ASSET_ROOT}/audio/${soundFileName(sound)}`,
+      sound,
+    });
   }
   return Object.fromEntries(entries.map((entry) => [entry.id, entry]));
 }

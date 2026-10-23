@@ -301,6 +301,13 @@ describe('validateLevel', () => {
     );
   });
 
+  it('checks the music is a stage theme', () => {
+    const menuMusic = 'music.menu' as LevelDefinition['music'];
+    expect(validateLevel(level({ music: menuMusic }))).toEqual([
+      'Music "music.menu" is not a stage theme',
+    ]);
+  });
+
   it('checks the time limit and target time', () => {
     expect(validateLevel(level({ timeLimit: 0, targetTime: 10 }))).toEqual([
       'Time limit must be positive',

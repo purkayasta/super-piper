@@ -36,6 +36,7 @@ class RecordedEvents implements ActorEvents {
   bounces = 0;
   hurts = 0;
   bursts = 0;
+  strikes = 0;
 
   award(points: number): void {
     this.awards.push(points);
@@ -51,6 +52,9 @@ class RecordedEvents implements ActorEvents {
   }
   parcelBurst(): void {
     this.bursts++;
+  }
+  strike(): void {
+    this.strikes++;
   }
 }
 
@@ -128,6 +132,7 @@ describe('StageActors and Pip', () => {
     placePip(pip, actors.enemies[0].centerX, enemyTop(actors) + 3, 120);
     actors.step(DT, pip, 0);
     expect(events.bounces).toBe(1);
+    expect(events.strikes).toBe(0);
     expect(events.awards).toEqual([100]);
     expect(events.hurts).toBe(0);
     expect(actors.enemies[0].mode).toBe('squashed');
@@ -210,6 +215,7 @@ describe('StageActors shells', () => {
     expect(shell.facing).toBe(1);
     expect(events.awards).toEqual([100, SCORING.kickPoints]);
     expect(events.hurts).toBe(0);
+    expect(events.strikes).toBe(1);
   });
 
   it('knocks out enemies in its path with its own chain', () => {
@@ -225,6 +231,7 @@ describe('StageActors shells', () => {
     for (let i = 0; i < 60; i++) actors.step(DT, pip, 0);
     expect(actors.enemies[1].mode === 'knocked' || !actors.enemies[1].active).toBe(true);
     expect(events.awards).toEqual([500, 800]);
+    expect(events.strikes).toBe(2);
   });
 });
 
@@ -257,6 +264,7 @@ describe('StageActors parcels', () => {
     expect(actors.enemies[0].mode).toBe('knocked');
     expect(events.awards).toEqual([200]);
     expect(events.bursts).toBe(1);
+    expect(events.strikes).toBe(1);
     expect(actors.activeParcels).toBe(0);
   });
 
@@ -274,6 +282,7 @@ describe('StageActors blocks and items', () => {
     actors.bumpBlock(8, 2);
     expect(actors.enemies[0].mode).toBe('knocked');
     expect(events.awards).toEqual([100]);
+    expect(events.strikes).toBe(1);
     actors.step(DT, pip, 0);
   });
 

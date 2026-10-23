@@ -12,7 +12,7 @@ Each phase has its own detailed task plan in [`plans/`](plans/). Detailed plans 
 | 2   | Pip's feel                                           | [`plans/phase-2-feel.md`](plans/phase-2-feel.md)                           | Built, review deferred |
 | 3   | Art pipeline + World 1-1                             | [`plans/phase-3-art-and-1-1.md`](plans/phase-3-art-and-1-1.md)             | Built, review deferred |
 | 4   | Enemies, power-ups, rules                            | [`plans/phase-4-enemies-and-rules.md`](plans/phase-4-enemies-and-rules.md) | Built, review deferred |
-| 5   | Sound and music                                      | written after Phase 4 review                                               | —                      |
+| 5   | Sound and music                                      | [`plans/phase-5-sound-and-music.md`](plans/phase-5-sound-and-music.md)     | Built, review deferred |
 | 6   | Angular shell + saves                                | written after Phase 5 review                                               | —                      |
 | 7   | Rest of World 1                                      | written after Phase 6 review                                               | —                      |
 | 8   | Mobile, performance, polish, **GitHub Pages deploy** | written after Phase 7 review                                               | —                      |
@@ -136,6 +136,15 @@ Phaser chunk: 1.11 MB raw, 243 kB transfer (arcade-only build). Initial bundle: 
 - every sound effect in `design.md` §5
 - music for the overworld, star power, stage clear, game over and menu, with the remaining themes' music written here too
 - an audio manager with master, music and SFX volume
+
+**Scope notes (built without a review):**
+
+- Audio is FLAC (mono, 24 kHz, 12-bit) from an in-repo encoder instead of WAV + MP3, so `lamejs` isn't needed. All 36 sounds come to 4.2 MB; a stage loads about 1.7 MB.
+- One app-lifetime Web Audio engine is owned by Angular's `AudioService`. Phaser's own sound is off and scenes play cues through the `GameAudio` port. The menu has music.
+- Each stage theme has a hurry variant at 1.3× tempo. At 100 time units left a warning plays, then the hurry loop.
+- A pit death now waits 2.8 s like a hit death, so the death jingle always finishes.
+- The pause chime, the volume UI and the menu-move, tube and boss-hit sounds are built but not reachable until Phases 6 and 7.
+- Open items for the combined review are in [`plans/deferred-review.md`](plans/deferred-review.md).
 
 **Review checklist:** every action has a satisfying sound. The music is catchy and original. Audio starts correctly after the first click or keypress (browser autoplay rules). There is no audio crackle or frame hitch when sounds play.
 

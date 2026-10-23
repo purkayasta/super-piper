@@ -1,3 +1,4 @@
+import type { GameAudio } from '../audio/game-audio';
 import type { GameBridge } from './game-bridge';
 import type { QualityLevel, StageId } from './game-events';
 
@@ -16,4 +17,5 @@ export type GameFactory = (
   parent: HTMLElement,
   bridge: GameBridge,
   options: GameOptions,
+  audio: GameAudio,
 ) => GameHandle;

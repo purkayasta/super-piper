@@ -5,6 +5,8 @@ import {
   ItemFrame,
   PIP_FRAME_HEIGHT,
 } from '../../content/art/atlas-frames';
+import { Sfx, type MusicId, type SfxId } from '../../content/audio/sound-ids';
+import { stageSoundIds, stageTracks } from '../../content/audio/stage-sounds';
 import {
   GAMEPLAY_ATLAS_ID,
   sceneryResolutionForQuality,
@@ -16,6 +18,9 @@ import {
   stageEntry,
   type StageEntry,
 } from '../../content/manifests/level-manifest';
+import { SILENT_AUDIO, type GameAudio } from '../audio/game-audio';
+import { MusicDirector } from '../audio/music-director';
+import { AUDIO_RULES } from '../configuration/audio.config';
 import { GOAL_SEQUENCE, PICKUP_INSET, STAR_BLOCK_FRAME_MS } from '../configuration/effects.config';
 import { DEFAULT_MOVEMENT, type MovementTuning } from '../configuration/movement.config';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../configuration/performance.config';
@@ -31,7 +36,13 @@ import { GOAL_HEIGHT_BANDS, SCORING, TIME_TALLY } from '../configuration/scoring
 import type { GameBridge } from '../core/game-bridge';
 import type { GameCommand, StageResult } from '../core/game-events';
 import type { GameOptions } from '../core/game-factory';
-import { readBridge, readOptions, readZoom, registryChangeEvent } from '../core/registry-keys';
+import {
+  readAudio,
+  readBridge,
+  readOptions,
+  readZoom,
+  registryChangeEvent,
+} from '../core/registry-keys';
 import type { PowerUpKind } from '../entities/power-ups/power-up';
 import { Player } from '../entities/player/player';
 import {
@@ -122,6 +133,9 @@ const Depth = {
 export class LevelScene extends Phaser.Scene {
   private bridge!: GameBridge;
   private options!: GameOptions;
+  private audio: GameAudio = SILENT_AUDIO;
+  private music!: MusicDirector;
+  private musicTrack: MusicId | null | undefined = undefined;
   private stage!: StageEntry;
   private level!: LevelDefinition;
   private compiled!: CompiledLevel;
@@ -184,6 +198,8 @@ export class LevelScene extends Phaser.Scene {
     this.options = readOptions(this.registry)!;
     this.stage = stageEntry(this.options.initialStageId)!;
     this.level = this.stage.level!;
+    this.audio = readAudio(this.registry) ?? SILENT_AUDIO;
+    this.audio.prepare(stageSoundIds(this.level.music));
     this.sceneryIds = sceneryAssetIds(
       this.level.theme,
       sceneryResolutionForQuality(this.options.quality),
@@ -242,6 +258,8 @@ export class LevelScene extends Phaser.Scene {
     this.death = new DeathSequence(DEATH_RULES);
     this.tally = new TimeTally(TIME_TALLY);
     this.probe = createPipProbe();
+    this.music = new MusicDirector(stageTracks(this.level.music), AUDIO_RULES.hurryWarningMs);
+    this.musicTrack = undefined;
 
     this.controls = new DomInput();
     this.placeStart();
@@ -286,6 +304,7 @@ export class LevelScene extends Phaser.Scene {
       stageLabel: this.level.label,
     });
     this.emitHudIfChanged();
+    this.syncMusic();
   }
 
   override update(_time: number, delta: number): void {
@@ -295,6 +314,7 @@ export class LevelScene extends Phaser.Scene {
     if (!this.worldFrozen && !this.goal.active && !this.finished) {
       this.blockClockMs += delta;
       this.session.tick(delta);
+      this.checkHurry();
       if (this.session.timeUp && this.goal.phase === 'inactive') this.killPip('time-up');
     }
     this.effects.update(delta);
@@ -307,7 +327,22 @@ export class LevelScene extends Phaser.Scene {
     }
     if (this.goal.phase !== 'inactive' && !this.finished) this.stepGoal(delta);
     this.updatePipFlash(delta);
+    this.music.setStar(this.power.starPower);
+    this.music.step(delta);
+    this.syncMusic();
     this.emitHudIfChanged();
+  }
+
+  private checkHurry(): void {
+    if (this.music.hurry || this.session.hud.timeLeft > AUDIO_RULES.hurryTimeLeft) return;
+    if (this.music.beginHurry()) this.audio.playSfx(Sfx.timeLow);
+  }
+
+  private syncMusic(): void {
+    const track = this.music.track;
+    if (track === this.musicTrack) return;
+    this.musicTrack = track;
+    this.audio.playMusic(track);
   }
 
   private get worldFrozen(): boolean {
@@ -461,14 +496,18 @@ export class LevelScene extends Phaser.Scene {
     switch (command.type) {
       case 'pause':
         this.controls.releaseAll();
+        this.audio.pauseMusic();
+        this.audio.playSfx(Sfx.pause);
         this.scene.pause();
         this.bridge.emit({ type: 'paused' });
         break;
       case 'resume':
+        this.audio.resumeMusic();
         this.scene.resume();
         this.bridge.emit({ type: 'resumed' });
         break;
       case 'restart':
+        this.audio.playMusic(null);
         this.scene.restart({});
         break;
       case 'applyTuning':
@@ -522,6 +561,9 @@ export class LevelScene extends Phaser.Scene {
     if (this.worldFrozen) return;
     const dt = 1 / this.physics.world.fps;
     if (!this.player.isScripted) {
+      if (this.player.controller.justLaunched) {
+        this.audio.playSfx(this.player.form === 'small' ? Sfx.jumpSmall : Sfx.jumpBig);
+      }
       this.checkHiddenBlocks();
       this.throwOnPress();
     }
@@ -553,37 +595,52 @@ export class LevelScene extends Phaser.Scene {
     const handX = body.center.x + facing * PARCEL_HAND_REACH_PX;
     if (this.actors.throwParcel(handX, body.top + PARCEL_HAND_HEIGHT_PX, facing)) {
       this.player.startThrowPose();
+      this.audio.playSfx(Sfx.parcelThrow);
     }
   }
 
   private readonly actorEvents: ActorEvents = {
     award: (points, x, y) => this.award(points, x, y),
-    bouncePip: () => this.player.bounce(COMBAT.stompBounceSpeed),
+    bouncePip: () => {
+      this.player.bounce(COMBAT.stompBounceSpeed);
+      this.audio.playSfx(Sfx.stomp);
+    },
     hurtPip: () => this.hurtPip(),
     collectPowerUp: (kind, x, y) => this.collectPowerUp(kind, x, y),
     parcelBurst: (x, y) => this.effects.sparkle(x, y),
+    strike: () => this.audio.playSfx(Sfx.kick),
   };
 
   private award(points: number, x: number, y: number): void {
-    if (points === ONE_UP) this.session.addLife();
-    else this.session.addScore(points);
+    if (points === ONE_UP) {
+      this.session.addLife();
+      this.audio.playSfx(Sfx.oneUp);
+    } else {
+      this.session.addScore(points);
+    }
     this.popups.show(points, x, y);
   }
 
   private hurtPip(): void {
     const outcome = this.power.damage();
-    if (outcome === 'shrink') this.beginTransition();
-    else if (outcome === 'death') this.killPip('hit');
+    if (outcome === 'shrink') {
+      this.audio.playSfx(Sfx.damage);
+      this.beginTransition();
+    } else if (outcome === 'death') {
+      this.killPip('hit');
+    }
   }
 
   private collectPowerUp(kind: PowerUpKind, x: number, y: number): void {
     switch (kind) {
       case 'parcel-box':
       case 'spark-stamp':
+        this.audio.playSfx(Sfx.powerUpGet);
         this.award(SCORING.powerUpPoints, x, y);
         if (this.power.collect(kind) === 'transform') this.beginTransition();
         break;
       case 'rush-star':
+        this.audio.playSfx(Sfx.powerUpGet);
         this.award(SCORING.powerUpPoints, x, y);
         this.power.startStar();
         this.starTintElapsedMs = 0;
@@ -616,6 +673,8 @@ export class LevelScene extends Phaser.Scene {
     const sprite = this.player.sprite;
     this.player.beginScripted();
     this.session.stopClock();
+    this.music.silence();
+    this.audio.playSfx(Sfx.death);
     this.death.start(sprite.y, cause);
     if (cause === 'pit') this.player.hide();
     else this.player.showDeath(sprite.x, sprite.y);
@@ -643,6 +702,7 @@ export class LevelScene extends Phaser.Scene {
       return;
     }
     this.gameIsOver = true;
+    this.music.gameOver();
     this.player.hide();
     this.bridge.emit({ type: 'gameOver', result: this.stageResult() });
   }
@@ -689,6 +749,8 @@ export class LevelScene extends Phaser.Scene {
     column: number,
     row: number,
   ): void {
+    const sound = blockHitSound(outcome);
+    if (sound !== null) this.audio.playSfx(sound);
     switch (outcome) {
       case 'none':
         return;
@@ -722,7 +784,7 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private payBlockCoin(tile: Phaser.Tilemaps.Tile): void {
-    this.session.addCoin();
+    this.collectCoin();
     this.effects.popCoin(tile.pixelX + HALF_TILE, tile.pixelY);
   }
 
@@ -783,6 +845,7 @@ export class LevelScene extends Phaser.Scene {
       sprite.setVisible(false);
       this.collectedPostmarks.push(index);
       this.session.collectPostmark();
+      this.audio.playSfx(Sfx.postmark);
       this.effects.sparkle(sprite.x, sprite.y);
     }
   }
@@ -790,14 +853,21 @@ export class LevelScene extends Phaser.Scene {
   private takeCoin(index: number, popped: boolean): void {
     const sprite = this.coinSprites[index];
     sprite.setVisible(false).anims.stop();
-    this.session.addCoin();
+    this.collectCoin();
     if (popped) this.effects.popCoin(sprite.x, sprite.y + HALF_TILE);
     else this.effects.sparkle(sprite.x, sprite.y);
+  }
+
+  private collectCoin(): void {
+    const livesBefore = this.session.hud.lives;
+    this.session.addCoin();
+    this.audio.playSfx(this.session.hud.lives > livesBefore ? Sfx.oneUp : Sfx.coin);
   }
 
   private checkCheckpoint(): void {
     if (!this.checkpoint.update(this.player.sprite.x)) return;
     this.checkpointPost?.setFrame(ItemFrame.checkpointUp);
+    this.audio.playSfx(Sfx.checkpoint);
     const cell = this.compiled.checkpoint!;
     this.bridge.emit({ type: 'checkpoint', stageId: this.level.id, column: cell.column });
   }
@@ -810,6 +880,8 @@ export class LevelScene extends Phaser.Scene {
     this.player.beginScripted();
     this.player.showFlash(true, null);
     this.session.stopClock();
+    this.music.silence();
+    this.audio.playSfx(Sfx.goal);
     this.goal.start(this.player.sprite.y, this.goalLayout);
     this.player.placeScripted(this.goal.x, this.goal.y, 'goal-grab', 1);
     const fraction = grabHeightFraction(feetY, this.goalPoleTopY, this.goalBaseTopY);
@@ -829,8 +901,9 @@ export class LevelScene extends Phaser.Scene {
     const leftThePole = goal.phase === 'walk' || goal.phase === 'done';
     if (leftThePole && !this.tally.active && !this.tally.done) {
       this.tally.start(this.session.hud.timeLeft);
+      this.music.stageClear();
     }
-    this.session.convertTime(this.tally.step(deltaMs));
+    if (this.session.convertTime(this.tally.step(deltaMs)) > 0) this.audio.playSfx(Sfx.tally);
     if (goal.phase === 'done' && this.tally.done) this.finishStage();
   }
 
@@ -895,6 +968,21 @@ export class LevelScene extends Phaser.Scene {
   private centerCamera(): void {
     // roundPixels floors scrollX and sprite x separately, so viewLeft must stay whole.
     this.cameras.main.centerOn(this.viewLeft + LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2);
+  }
+}
+
+function blockHitSound(outcome: BlockHitOutcome): SfxId | null {
+  switch (outcome) {
+    case 'none':
+    case 'bump':
+      return Sfx.bump;
+    case 'release-item':
+      return Sfx.powerUpAppear;
+    case 'break':
+      return Sfx.brickBreak;
+    case 'release-coin':
+    case 'multi-coin':
+      return null;
   }
 }
 

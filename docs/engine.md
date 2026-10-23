@@ -8,15 +8,15 @@ Anything marked _(builder's call)_ was decided during design without the owner. 
 
 ## 1. Stack
 
-| Area                   | Choice                                                                                                                                                                                                                                                                                             |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| App shell              | **Angular 22**: standalone components, zoneless change detection, signals, OnPush, lazy-loaded routes                                                                                                                                                                                              |
-| Game engine            | **Phaser 3.90** (latest 3.x; `game.md` requires Phaser 3), Arcade Physics                                                                                                                                                                                                                          |
-| Language               | TypeScript, strict mode                                                                                                                                                                                                                                                                            |
-| Unit tests             | Vitest (Angular's default runner)                                                                                                                                                                                                                                                                  |
-| Browser tests          | Playwright (Chromium; mobile emulation for touch)                                                                                                                                                                                                                                                  |
-| Build-time asset tools | Node scripts (`scripts/*.ts`) run with Node's built-in TypeScript type stripping and a small resolve hook. PNG and lossless WebP are encoded by in-repo pure-TS encoders, so there is no `sharp` and no new dependency (Phase 3). Audio uses a small pure-TS synth and `lamejs` _(builder's call)_ |
-| Hosting                | GitHub Pages via GitHub Actions; fully static, no server                                                                                                                                                                                                                                           |
+| Area                   | Choice                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App shell              | **Angular 22**: standalone components, zoneless change detection, signals, OnPush, lazy-loaded routes                                                                                                                                                                                                                                                                       |
+| Game engine            | **Phaser 3.90** (latest 3.x; `game.md` requires Phaser 3), Arcade Physics                                                                                                                                                                                                                                                                                                   |
+| Language               | TypeScript, strict mode                                                                                                                                                                                                                                                                                                                                                     |
+| Unit tests             | Vitest (Angular's default runner)                                                                                                                                                                                                                                                                                                                                           |
+| Browser tests          | Playwright (Chromium; mobile emulation for touch)                                                                                                                                                                                                                                                                                                                           |
+| Build-time asset tools | Node scripts (`scripts/*.ts`) run with Node's built-in TypeScript type stripping and a small resolve hook. PNG and lossless WebP are encoded by in-repo pure-TS encoders, so there is no `sharp` and no new dependency (Phase 3). Audio is rendered by a small pure-TS chiptune synth and written as FLAC by an in-repo encoder, so `lamejs` is not needed either (Phase 5) |
+| Hosting                | GitHub Pages via GitHub Actions; fully static, no server                                                                                                                                                                                                                                                                                                                    |
 
 No runtime dependencies beyond Angular and Phaser. No NgRx, React, Three.js or Rapier.
 
@@ -110,7 +110,7 @@ Assets are generated by scripts into `public/assets/generated/`, which is gitign
 
 1. **Sprites:** `.ts` pixel grids plus named palettes are packed into the gameplay atlas (PNG + Phaser JSON) and the tilesets. Palette-swap variants for cosmetics and themed enemies are generated here.
 2. **Scenery:** procedural generators produce gradient skies, fBm-noise cumulus clouds, layered mountain ridges with haze, rolling hills and bushes. Each layer is written as WebP at 720p and 1440p. Generation is seeded, so it is reproducible.
-3. **Audio:** SFX parameter sets and music note data are rendered by a small 4-channel chiptune synth (two squares, triangle, noise). SFX are written as short WAV and music as MP3, both of which play on every browser including iOS Safari.
+3. **Audio:** SFX parameter sets and music note data (`src/content/audio/`) are rendered by a small 4-channel chiptune synth (two band-limited pulses, a stepped triangle and LFSR noise; `src/asset-pipeline/audio/`). Loops are folded and filtered circularly so they wrap seamlessly. Everything is written as mono FLAC at 24 kHz with 12-bit samples, by an in-repo encoder (fixed predictors, Rice codes, wasted bits). FLAC decodes in every current browser, including iOS Safari. That is 4.2 MB for all 36 sounds, about 1.7 MB for one stage (Phase 5). Each sound has a stable manifest ID (`sfx.*`, `music.*`).
 4. `validate-assets.ts` checks that every manifest ID resolves to a generated file and that every referenced ID exists in the manifest.
 
 Hand-made art can replace any generated file by being placed at the manifest path. The generator then skips that ID.
@@ -119,13 +119,14 @@ Hand-made art can replace any generated file by being placed at the manifest pat
 
 ### 7.1 Ownership
 
-| State                                                                               | Owner                                                     |
-| ----------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Positions, physics, enemies, per-frame anything                                     | Phaser                                                    |
-| Current-stage session (score, coins, time, lives, power state)                      | Phaser; mirrored to Angular only on change                |
-| Campaign progress, coins balance, stars, XP, rank, unlocks, cosmetics, achievements | Angular (`SaveService`, `ProgressionService`)             |
-| Settings, key bindings, quality                                                     | Angular (`SettingsService`); pushed to Phaser as commands |
-| Navigation, menus, overlays                                                         | Angular                                                   |
+| State                                                                               | Owner                                                            |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Positions, physics, enemies, per-frame anything                                     | Phaser                                                           |
+| Current-stage session (score, coins, time, lives, power state)                      | Phaser; mirrored to Angular only on change                       |
+| Campaign progress, coins balance, stars, XP, rank, unlocks, cosmetics, achievements | Angular (`SaveService`, `ProgressionService`)                    |
+| Settings, key bindings, quality                                                     | Angular (`SettingsService`); pushed to Phaser as commands        |
+| Audio engine, decoded sounds, volumes                                               | Angular (`AudioService`, root); Phaser gets the `GameAudio` port |
+| Navigation, menus, overlays                                                         | Angular                                                          |
 
 ### 7.2 Integration layer
 
@@ -133,7 +134,8 @@ Hand-made art can replace any generated file by being placed at the manifest pat
   - a `GameCommand` discriminated union: `startStage`, `pause`, `resume`, `restart`, `quitToMap`, `applySettings`, `requestSnapshot`
   - a `GameEvent` union: `loadProgress`, `loadComplete`, `hudChanged` (score/coins/time/lives/power, emitted only on change; time once per in-game second), `checkpoint`, `stageComplete`, `playerDied`, `gameOver`, `bossDefeated`, `milestone`, `recoverableError`
 - `GameSessionService` (Angular) is the only thing that touches the Phaser instance. It sends commands and exposes events as signals for templates.
-- **Lifecycle:** `GameShellComponent` creates the Phaser game once in `afterNextRender` and calls `game.destroy(true)` in `ngOnDestroy`. Pause and results are overlays inside the shell. The game is paused, never recreated, while an overlay shows. Every scene unregisters its listeners and stops its timers, tweens and sounds on `shutdown`.
+- **Audio (Phase 5):** one Web Audio engine (`game-engine/audio/web-audio-engine.ts`, no Phaser) lives for the app's lifetime, owned by Angular's `AudioService`. Phaser's own sound system is off (`audio.noAudio`). The game factory receives the engine as the narrow `GameAudio` port (`prepare`, `playSfx`, `playMusic`, `pauseMusic`, `resumeMusic`, `stopAll`), stored in the registry like the bridge. Scenes call it on gameplay events only, never per frame, and a pure `MusicDirector` decides the track. Volumes never cross the bridge: they are Angular settings applied straight to the engine. No `AudioContext` exists before the first user gesture; leaving the play route stops every sound.
+- **Lifecycle:** `GameShellComponent` creates the Phaser game once in `afterNextRender` and calls `game.destroy(true)` in `ngOnDestroy`. Pause and results are overlays inside the shell. The game is paused, never recreated, while an overlay shows. Every scene unregisters its listeners and stops its timers and tweens on `shutdown`. Sound outlives a `scene.restart` (a death jingle must finish), and `GameSessionService.detach` stops it all.
 
 ## 8. Routing and screens
 
