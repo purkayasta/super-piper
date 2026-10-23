@@ -1,6 +1,6 @@
 # Deferred Review Items
 
-_2026-10-23 · The owner chose to build Phases 3–7 back to back on one branch (`phases-3-7`), one commit per phase, with no per-phase browser review. Everything below is checked in one combined review after Phase 7. Each phase adds its own section when it is built._
+_2026-10-23 · Phases 3–6 were built back to back on `phases-3-7` without per-phase owner reviews; Phase 7 is being completed on that branch. These unchecked items are still outstanding and must be reviewed before Phase 8._
 
 ## Phase 2: Pip's feel
 
@@ -36,7 +36,7 @@ Deferred to later phases (scope decisions):
 - [x] Big-Pip (16x32) frames, and the grow/shrink and death animations, move to Phase 4 with the Parcel Box. The small-Pip death frame is already in the atlas. _Done in Phase 4: 13 big frames, a Spark look, a flicker transition for grow, shrink and Spark-up, and a death hop._
 - [x] Falling into a pit respawns Pip at the start, and the timer stops at 0 without killing. Lives, death and the time-out are Phase 4 rules. _Done in Phase 4: pits, hits and the time-out kill, each death costs a life, and the stage restarts at the checkpoint._
 - [x] Goal-height points and the time bonus at the goal are Phase 4 scoring. The DELIVERED! banner is a stand-in for the Phase 6 results screen. _Done in Phase 4: 100 to 5000 by grab height, then 50 per remaining time unit, tallied on the HUD. The banner stays until Phase 6._ _Done in Phase 6: the results screen replaces the DELIVERED! banner, and the GAME OVER banner became a dialog with Retry and World map._
-- Tubes are not enterable (Phase 7). Their destination field is already validated.
+- [x] Enterable tubes and the 1-1 bonus room were added in Phase 7. Their gameplay and route still need the Phase 7 browser review below.
 
 ## Phase 4: Enemies, power-ups, rules
 
@@ -94,7 +94,7 @@ Built but not reachable yet (later phases):
 - [x] The pause chime and held music run on the bridge's `pause` and `resume` commands, which nothing sends until Phase 6's pause overlay. _Done in Phase 6: the pause key, gamepad Start, the pause button and hiding the tab all pause through the overlay._
 - [x] The volume UI is Phase 6. It binds to `AudioService.volumes`, `setVolume(channel, value)` and `setVolumes(partial)`, and persists them through the save service. _Done in Phase 6: master, music and effects on the settings screen, music and effects in the pause overlay; releasing the master or effects slider plays the coin sound._
 - [x] `sfx.menu-move` waits for Phase 6's menus. _Done in Phase 6: every focus move in a menu plays it._
-- `sfx.tube` and `sfx.boss-hit` wait for Phase 7's tubes and boss. The underground, sky, castle and boss music (and their hurry variants) are rendered and in the manifest, ready for Phase 7's stages.
+- [x] `sfx.tube` and `sfx.boss-hit` are wired to the Phase 7 tubes and boss. The underground, sky, castle and boss music (and their hurry variants) are in the manifest. Listening and mix review remain open.
 
 ## Phase 6: Angular shell + saves
 
@@ -109,22 +109,23 @@ Review checklist from `docs/plan.md`:
 
 Not measured or not verified (no review this phase):
 
-- [ ] **Nothing has been seen in a browser.** Only unit tests and the production build ran. Check every screen at several window sizes: the main menu, the world map (node positions and the dashed route at narrow and wide sizes), settings, the pause overlay over the canvas, the results overlay and the game-over dialog.
+- [ ] **No full owner browser review has happened.** A Chromium test covered the full-width settings layout and sensitivity sliders; manually check every screen at several window sizes: the main menu, world map (node positions and dashed route), settings, pause, results and game over.
 - [ ] **Look and feel of the menus.** Pixel panels with hard offset shadows, the red Play button, gold focus, Press Start 2P throughout. The star glyphs on the map's goal list (☆/★) fall back to a system font; check they read well. Check contrast of the muted grey text against the panel colour.
 - [ ] **Keyboard navigation.** Arrows move focus in every menu (wrapping), Esc goes back (map → menu, settings → menu, pause → resume, results and game over → map). Left/right on a slider change the value instead of moving focus. Held Enter or Space never repeats a click.
 - [ ] **Gamepad navigation.** D-pad or stick moves (repeat after 350 ms, then every 140 ms), A confirms, B goes back, Start confirms on screens and resumes in the pause overlay. A button held when a menu opens is ignored until released. Only the first connected pad is read, with the standard mapping. Polling runs only while a menu is on screen and a pad is connected; check it stops in game (no pad reads in a performance profile while playing).
 - [ ] **Pause edge cases.** Pause on the very first frame after loading, during the death hop, while the Rush Star music plays and during the hurry warning. Pause asked for during loading (switch tab while loading) is applied after load. A pause press during a death restart (between scenes) is dropped; check that it never leaves the overlay up over a running game. The pause key that resumes must not re-pause. Restart from the pause overlay starts the music again.
-- [ ] **Results.** Stars pop in one after another (none under reduced motion), BEST tags on a new best score or time, the XP bar and RANK UP. "Next stage" only appears once 1-2 exists (Phase 7). Replay restarts in the same game. Check the results appear only after the tally finishes and the clear fanfare isn't cut.
+- [ ] **Results.** Stars pop in one after another (none under reduced motion), BEST tags on a new best score or time, the XP bar and RANK UP. "Next stage" should route to 1-2 after a 1-1 clear. Replay restarts in the same game. Check the results appear only after the tally finishes and the clear fanfare isn't cut.
+- [ ] **Movement sensitivity.** Test jump and left/right turning at 50%, 100% and 150%; check the settings sliders remain usable with keyboard and gamepad navigation.
 - [ ] **Progression numbers.** XP 1 per 100 points + 200 first clear + 100 per new star; ranks at 500 / 1500 / 3000 / 5000 / 8000 / 12000. 1-1's target is 150 time units (60 s); check it is a fair but real challenge. Postmarks count across runs.
 - [ ] **Quality.** Low: no bushes layer, no sparkles, 2 brick-debris pieces, still clouds, canvas capped at 3×. Medium: everything at 720p, capped at 4×. High: 1440p, capped at 6×. Quality applies from the next stage load. Measure Low against High in 1-1 on the baseline machine.
 - [ ] **Reduced motion.** Defaults to the OS setting. Stops cloud drift and every UI animation and transition. Check nothing else in game should also calm down (the star-block shimmer, coin spin and Rush Star tint are gameplay signals and stay).
-- [ ] **Screen shake** has no consumer yet; Phase 7's boss must read `EffectProfile.screenShake`.
+- [ ] **Screen shake.** The Phase 7 boss now consumes `EffectProfile.screenShake`; confirm its amplitude and reduced-motion/setting behavior in the browser.
 - [ ] **Rebinding.** The primary key is replaced; a key taken from another action moves (or swaps if it was that action's only key); Tab, Backquote, F1–F12 and the Meta keys are refused; Esc cancels. Gamepad buttons can't be rebound. Check AZERTY and other layouts: bindings store `KeyboardEvent.code` (physical position), and labels show the US name.
 - [ ] **Save timing.** A clear writes at once; settings write 500 ms after the last change and on `pagehide`. Check there is no frame hitch when the results appear (one `JSON.stringify` of a small object).
 - [ ] **Private browsing and blocked storage.** The menu should say progress can't be saved, and the game should still work.
 - [ ] **Cross-tab.** Two tabs each keep their own copy in memory and the last write wins. Not handled (no `storage` event listener).
 - [ ] **Initial bundle** grew from 235 kB to 243 kB raw (67 kB transfer). Phaser is still lazy.
-- [ ] **e2e has not been run.** The helpers were updated for the new flow (menu → map → Deliver!, leave by pause → World map, rapid toggling by browser back).
+- [ ] **The full e2e suite has not been run.** The settings layout/slider browser test passed; the lifecycle helpers cover menu → map → Deliver!, leaving through pause → World map, and rapid toggling by browser back.
 
 Earlier-phase items handled here:
 
@@ -134,5 +135,21 @@ Earlier-phase items handled here:
 Built but not reachable yet (later phases):
 
 - `applySettings` is still never sent: settings are read at stage start. Live quality changes would need a scenery reload.
-- Save fields `cosmetics` (owned and equipped outfit) and `achievements` are validated and stored, waiting for Phase 7's shop and achievements. Rank-unlocked outfits are Phase 7.
-- The world map lists 1-2, 1-3 and 1-4 from `world-manifest.ts`. Adding their levels to `level-manifest.ts` in Phase 7 makes them playable with no map change.
+- Save fields `cosmetics` (owned and equipped outfit) and `achievements` are validated and stored, but Phase 7 still needs the catalogue, unlock/purchase services and screens. Rank-unlocked outfits are also unfinished.
+- All four World 1 levels are now registered and unlock in order on the world map; check each route and results-screen progression by hand.
+
+## Phase 7: Rest of World 1
+
+Implemented: 1-2, 1-3, 1-4, the 1-1 bonus area, themed tiles/scenery, enterable tubes, moving platforms, lava, firebars, the Rook King boss, screen shake, run stats and gameplay milestone events. The Angular achievement/shop/story work is still missing; do not treat this phase as complete.
+
+Not measured or not verified:
+
+- [ ] Play all four stages by hand, including the bonus-room entrance/exit and every stage transition.
+- [ ] Review stage teaching, difficulty, collision fairness, boss telegraphs, camera lock/gate, and the boss defeat/goal sequence.
+- [ ] Review each stage's art, HUD, effects, and scenery readability at High and Medium quality.
+- [ ] Check moving-platform riding and jumps, firebar/lava damage, tube transitions, checkpoint/death behavior, and cleanup after restarts.
+- [ ] Listen to underground, sky, castle and boss music plus tube/boss-hit SFX. Check pause, hurry and stage-clear transitions.
+- [ ] Measure full-stage and boss-scene frame rate, p95, long frames and active bodies on the baseline GPU. No Phase 7 performance target has been measured.
+- [ ] Implement and test Angular achievement, shop/cosmetic and story features before the Phase 7 browser review.
+- [ ] Verify save persistence, progression unlocks, outfits, achievements and story replay after those features exist.
+- [ ] Run the full Playwright suite after Angular feature work; the prior phase's e2e checklist is still unverified.

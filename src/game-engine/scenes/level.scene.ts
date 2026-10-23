@@ -28,13 +28,14 @@ import { TILE_SIZE } from '../configuration/physics.config';
 import {
   COMBAT,
   DEATH_RULES,
+  MILESTONE_RULES,
   MULTI_COIN,
   POWER_RULES,
   STAR_TINTS,
 } from '../configuration/rules.config';
 import { GOAL_HEIGHT_BANDS, SCORING, TIME_TALLY } from '../configuration/scoring.config';
 import type { GameBridge } from '../core/game-bridge';
-import type { GameCommand, StageResult } from '../core/game-events';
+import type { GameCommand, RunStats, StageResult } from '../core/game-events';
 import type { GameOptions } from '../core/game-factory';
 import {
   readAudio,
@@ -62,6 +63,7 @@ import { DeathSequence, type DeathCause } from '../systems/rules/death-sequence'
 import { TimeTally, goalHeightPoints, grabHeightFraction } from '../systems/scoring/goal-scoring';
 import { ONE_UP } from '../systems/scoring/score-chain';
 import { StageSession, type RunTotals } from '../systems/scoring/stage-session';
+import { EMPTY_RUN_STATS, RunStatsTracker } from '../systems/scoring/run-stats';
 import { BlockContents } from '../world/block-contents';
 import {
   blockHitOutcome,
@@ -102,6 +104,7 @@ import { applyDetectedPhysicsRate } from './physics-rate';
 
 export interface LevelSceneData {
   readonly run?: RunTotals;
+  readonly stats?: RunStats;
   readonly checkpointReached?: boolean;
   readonly postmarksCollected?: readonly number[];
 }
@@ -155,6 +158,7 @@ export class LevelScene extends Phaser.Scene {
   private effects!: BlockEffects;
   private popups!: ScorePopups;
   private session!: StageSession;
+  private runStats!: RunStatsTracker;
   private goal!: GoalSequence;
   private goalLayout!: GoalLayout;
   private goalTriggerX = 0;
@@ -207,11 +211,11 @@ export class LevelScene extends Phaser.Scene {
     this.stage = stageEntry(this.options.initialStageId)!;
     this.level = this.stage.level!;
     this.audio = readAudio(this.registry) ?? SILENT_AUDIO;
-    this.audio.prepare(stageSoundIds(this.level.music));
+    this.audio.prepare(stageSoundIds([this.level.music]));
     this.sceneryIds = sceneryAssetIds(
-      this.level.theme,
+      [this.level.theme],
       sceneryResolutionForQuality(this.options.settings.quality),
-      this.profile.skippedSceneryLayers,
+      this.profile.detailScenery,
     );
     this.load.on(Phaser.Loader.Events.PROGRESS, this.reportProgress);
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.reportLoadError);
@@ -241,7 +245,7 @@ export class LevelScene extends Phaser.Scene {
       this.level.theme,
       sceneryResolutionForQuality(this.options.settings.quality),
       Depth.scenery,
-      this.profile.skippedSceneryLayers,
+      this.profile.detailScenery,
       this.profile.cloudDrift,
     );
     this.collisionLayer = this.buildTileLayers(tilesetKey);
@@ -252,6 +256,7 @@ export class LevelScene extends Phaser.Scene {
       SCORING,
       this.runData.postmarksCollected?.length ?? 0,
     );
+    this.runStats = new RunStatsTracker(MILESTONE_RULES, this.runData.stats ?? EMPTY_RUN_STATS);
     this.buildPickups(this.runData.postmarksCollected ?? []);
     this.buildGoal();
     this.buildCheckpoint();
@@ -282,6 +287,12 @@ export class LevelScene extends Phaser.Scene {
       this.controls.resolve,
       this.isSolidTile,
       this.handleHeadBump,
+      undefined,
+      {
+        jump: this.options.settings.jumpSensitivity,
+        left: this.options.settings.leftSensitivity,
+        right: this.options.settings.rightSensitivity,
+      },
     );
     this.player.sprite.setDepth(Depth.player);
     this.physics.add.collider(this.player.sprite, this.collisionLayer);
@@ -422,7 +433,9 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private buildGoal(): void {
-    const { column, baseRow, poleTopRow } = this.compiled.goal;
+    const goal = this.compiled.goal;
+    if (goal === null) throw new Error(`Level "${this.level.id}" has no goal`);
+    const { column, baseRow, poleTopRow } = goal;
     const poleX = column * TILE_SIZE + HALF_TILE;
     const poleTopY = poleTopRow * TILE_SIZE + GOAL_POLE_TOP_SIZE;
     const baseTopY = baseRow * TILE_SIZE;
@@ -629,6 +642,11 @@ export class LevelScene extends Phaser.Scene {
     collectPowerUp: (kind, x, y) => this.collectPowerUp(kind, x, y),
     parcelBurst: (x, y) => this.effects.sparkle(x, y),
     strike: () => this.audio.playSfx(Sfx.kick),
+    combo: (kind, length) => {
+      const milestone = this.runStats.combo(kind, length);
+      if (milestone !== null)
+        this.bridge.emit({ type: 'milestone', stageId: this.level.id, milestone });
+    },
   };
 
   private award(points: number, x: number, y: number): void {
@@ -644,9 +662,11 @@ export class LevelScene extends Phaser.Scene {
   private hurtPip(): void {
     const outcome = this.power.damage();
     if (outcome === 'shrink') {
+      this.runStats.recordHit();
       this.audio.playSfx(Sfx.damage);
       this.beginTransition();
     } else if (outcome === 'death') {
+      this.runStats.recordHit();
       this.killPip('hit');
     }
   }
@@ -715,6 +735,7 @@ export class LevelScene extends Phaser.Scene {
     if (livesLeft > 0) {
       const next: LevelSceneData = {
         run: this.session.totals(),
+        stats: this.runStats.snapshot(this.power.form),
         checkpointReached: this.checkpoint.reached,
         postmarksCollected: this.collectedPostmarks,
       };
@@ -947,6 +968,7 @@ export class LevelScene extends Phaser.Scene {
       postmarks: this.session.postmarks,
       postmarksCollected: [...this.collectedPostmarks].sort((a, b) => a - b),
       postmarkTotal: this.compiled.postmarks.length,
+      stats: this.runStats.snapshot(this.power.form),
     };
   }
 

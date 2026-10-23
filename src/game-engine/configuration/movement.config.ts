@@ -22,6 +22,18 @@ export interface MovementTuning {
   cameraLeadFraction: number;
 }
 
+export interface MovementSensitivity {
+  readonly jump: number;
+  readonly left: number;
+  readonly right: number;
+}
+
+export const DEFAULT_MOVEMENT_SENSITIVITY: MovementSensitivity = {
+  jump: 1,
+  left: 1,
+  right: 1,
+};
+
 export const DEFAULT_MOVEMENT: MovementTuning = {
   walkMaxSpeed: 93.75,
   runMaxSpeed: 153.75,

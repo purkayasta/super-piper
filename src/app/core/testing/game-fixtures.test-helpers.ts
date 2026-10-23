@@ -13,6 +13,13 @@ export function stageResult(overrides: Partial<StageResult> = {}): StageResult {
     postmarks: 1,
     postmarksCollected: [1],
     postmarkTotal: 3,
+    stats: {
+      hits: 0,
+      finishPower: 'big',
+      bossDefeated: false,
+      bossStompHits: 0,
+      milestones: [],
+    },
     ...overrides,
   };
 }
@@ -21,7 +28,14 @@ export function gameOptions(overrides: Partial<GameOptions> = {}): GameOptions {
   return {
     devTools: true,
     initialStageId: 'test-room',
-    settings: { quality: 'high', reducedMotion: false, screenShake: true },
+    settings: {
+      quality: 'high',
+      reducedMotion: false,
+      screenShake: true,
+      jumpSensitivity: 1,
+      leftSensitivity: 1,
+      rightSensitivity: 1,
+    },
     bindings: DEFAULT_BINDINGS,
     ...overrides,
   };

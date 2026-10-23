@@ -58,7 +58,59 @@
     </div>
   </section>
 
-  <section class="panel group" aria-labelledby="controls-heading">
+  <section class="panel group sensitivity-group" aria-labelledby="sensitivity-heading">
+    <h2 id="sensitivity-heading">MOVEMENT SENSITIVITY</h2>
+    <label class="sensitivity-control">
+      <span>Jump</span>
+      <input
+        #jumpSensitivity
+        type="range"
+        min="50"
+        max="150"
+        step="5"
+        [value]="settings().jumpSensitivity * 100"
+        [attr.aria-valuetext]="settings().jumpSensitivity * 100 + '%'"
+        data-testid="jump-sensitivity"
+        (input)="setJumpSensitivity(jumpSensitivity.valueAsNumber / 100)"
+      />
+      <output>{{ settings().jumpSensitivity * 100 }}%</output>
+    </label>
+    <label class="sensitivity-control">
+      <span>Turn left</span>
+      <input
+        #leftSensitivity
+        type="range"
+        min="50"
+        max="150"
+        step="5"
+        [value]="settings().leftSensitivity * 100"
+        [attr.aria-valuetext]="settings().leftSensitivity * 100 + '%'"
+        data-testid="left-sensitivity"
+        (input)="setLeftSensitivity(leftSensitivity.valueAsNumber / 100)"
+      />
+      <output>{{ settings().leftSensitivity * 100 }}%</output>
+    </label>
+    <label class="sensitivity-control">
+      <span>Turn right</span>
+      <input
+        #rightSensitivity
+        type="range"
+        min="50"
+        max="150"
+        step="5"
+        [value]="settings().rightSensitivity * 100"
+        [attr.aria-valuetext]="settings().rightSensitivity * 100 + '%'"
+        data-testid="right-sensitivity"
+        (input)="setRightSensitivity(rightSensitivity.valueAsNumber / 100)"
+      />
+      <output>{{ settings().rightSensitivity * 100 }}%</output>
+    </label>
+    <p class="note">
+      Jump changes launch height. Turn changes how quickly Pip responds to each direction.
+    </p>
+  </section>
+
+  <section class="panel group bindings-group" aria-labelledby="controls-heading">
     <h2 id="controls-heading">CONTROLS</h2>
     <ul class="bindings">
       @for (action of actions; track action) {
@@ -93,7 +145,7 @@
     </button>
   </section>
 
-  <section class="panel group" aria-labelledby="data-heading">
+  <section class="panel group data-group" aria-labelledby="data-heading">
     <h2 id="data-heading">SAVE DATA</h2>
     @if (confirmingErase()) {
       <p class="note">Erase every stage record, star, coin and rank? Settings stay.</p>

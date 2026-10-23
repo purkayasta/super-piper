@@ -4,18 +4,18 @@ _2026-10-22 · Implements [`design.md`](design.md) and [`engine.md`](engine.md) 
 
 The game is built in **8 phases**. Every phase ends with a **browser review by the owner**. The next phase does not start until the owner has played the build and signed off, or asked for changes.
 
-Each phase has its own detailed task plan in [`plans/`](plans/). Detailed plans are written **just before a phase starts**, so they include what was learned in the previous review. Phases 1 and 2 are detailed now.
+Each phase has its own detailed task plan in [`plans/`](plans/). Plans are written just before a phase starts so they include what was learned in the previous review; current status is kept in the table below.
 
-| #   | Phase                                                | Detailed plan                                                              | Status                 |
-| --- | ---------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------- |
-| 1   | Skeleton                                             | [`plans/phase-1-skeleton.md`](plans/phase-1-skeleton.md)                   | Done                   |
-| 2   | Pip's feel                                           | [`plans/phase-2-feel.md`](plans/phase-2-feel.md)                           | Built, review deferred |
-| 3   | Art pipeline + World 1-1                             | [`plans/phase-3-art-and-1-1.md`](plans/phase-3-art-and-1-1.md)             | Built, review deferred |
-| 4   | Enemies, power-ups, rules                            | [`plans/phase-4-enemies-and-rules.md`](plans/phase-4-enemies-and-rules.md) | Built, review deferred |
-| 5   | Sound and music                                      | [`plans/phase-5-sound-and-music.md`](plans/phase-5-sound-and-music.md)     | Built, review deferred |
-| 6   | Angular shell + saves                                | [`plans/phase-6-shell-and-saves.md`](plans/phase-6-shell-and-saves.md)     | Built, review deferred |
-| 7   | Rest of World 1                                      | written after Phase 6 review                                               | —                      |
-| 8   | Mobile, performance, polish, **GitHub Pages deploy** | written after Phase 7 review                                               | —                      |
+| #   | Phase                                                | Detailed plan                                                              | Status                               |
+| --- | ---------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------ |
+| 1   | Skeleton                                             | [`plans/phase-1-skeleton.md`](plans/phase-1-skeleton.md)                   | Done                                 |
+| 2   | Pip's feel                                           | [`plans/phase-2-feel.md`](plans/phase-2-feel.md)                           | Built, owner review deferred         |
+| 3   | Art pipeline + World 1-1                             | [`plans/phase-3-art-and-1-1.md`](plans/phase-3-art-and-1-1.md)             | Built, owner review deferred         |
+| 4   | Enemies, power-ups, rules                            | [`plans/phase-4-enemies-and-rules.md`](plans/phase-4-enemies-and-rules.md) | Built, owner review deferred         |
+| 5   | Sound and music                                      | [`plans/phase-5-sound-and-music.md`](plans/phase-5-sound-and-music.md)     | Built, owner review deferred         |
+| 6   | Angular shell + saves                                | [`plans/phase-6-shell-and-saves.md`](plans/phase-6-shell-and-saves.md)     | Built, owner review deferred         |
+| 7   | Rest of World 1                                      | [`plans/phase-7-rest-of-world-1.md`](plans/phase-7-rest-of-world-1.md)     | In progress; Angular features remain |
+| 8   | Mobile, performance, polish, **GitHub Pages deploy** | written after Phase 7 owner review                                         | Planned                              |
 
 ## How a review works
 
@@ -96,7 +96,7 @@ Phaser chunk: 1.11 MB raw, 243 kB transfer (arcade-only build). Initial bundle: 
 - the parallax renderer
 - the level format and validator
 - final small-Pip animations (idle, walk, run, skid, jump, fall, goal-grab; plus a death frame), with two palette-swap outfits
-- the full original 1-1 layout with star blocks, bricks, coins, tubes (non-enterable for now) and the goal post
+- the full original 1-1 layout with star blocks, bricks, coins, tubes and the goal post (tubes became enterable in Phase 7)
 - the HTML HUD (score, coins, world, time, lives), fed by `hudChanged` events on change
 
 **Scope notes (built without a review):**
@@ -143,7 +143,7 @@ Phaser chunk: 1.11 MB raw, 243 kB transfer (arcade-only build). Initial bundle: 
 - One app-lifetime Web Audio engine is owned by Angular's `AudioService`. Phaser's own sound is off and scenes play cues through the `GameAudio` port. The menu has music.
 - Each stage theme has a hurry variant at 1.3× tempo. At 100 time units left a warning plays, then the hurry loop.
 - A pit death now waits 2.8 s like a hit death, so the death jingle always finishes.
-- The pause chime, the volume UI and the menu-move, tube and boss-hit sounds are built but not reachable until Phases 6 and 7.
+- The pause chime and volume UI became reachable in Phase 6. Tube and boss-hit sounds are wired by the Phase 7 gameplay systems; their mix and timing still need an owner listen-through.
 - Open items for the combined review are in [`plans/deferred-review.md`](plans/deferred-review.md).
 
 **Review checklist:** every action has a satisfying sound. The music is catchy and original. Audio starts correctly after the first click or keypress (browser autoplay rules). There is no audio crackle or frame hitch when sounds play.
@@ -153,16 +153,16 @@ Phaser chunk: 1.11 MB raw, 243 kB transfer (arcade-only build). Initial bundle: 
 **Builds:**
 
 - **Screens:** main menu, world map with stage nodes, pause overlay and results screen
-- **Settings:** volumes, key rebinding, quality, reduced motion and screen shake
+- **Settings:** volumes, key rebinding, quality, reduced motion, screen shake and separate jump/left/right sensitivity
 - **Saves:** the save service with validation, migration and backup recovery
 - **Progression:** stars (finish, Postmarks, target time), best score and time, coins balance, XP and rank
 
 **Scope notes (built without a review):**
 
 - Routes: `#/` menu, `#/map`, `#/play/:stageId`, `#/settings`. Achievements and the shop stay in Phase 7.
-- The world map reads World 1 from `content/manifests/world-manifest.ts`. 1-2 to 1-4 show as locked, then "SOON" once the stage before is cleared, until Phase 7 adds their levels to the level manifest.
+- The world map reads World 1 from `content/manifests/world-manifest.ts`. All four stages now have level-manifest entries; 1-2 to 1-4 unlock in order as the previous stage is cleared.
 - Menus work with the mouse, arrow keys and a gamepad (d-pad/stick, A, B, Start). Pause comes from the pause key, gamepad Start, a pause button or hiding the tab; the overlay has Resume, Restart, World map and music/effects volume.
-- Settings apply at the next stage load; only volumes change live. Low quality drops the bushes layer, sparkles, half the brick debris and cloud drift. Screen shake waits for Phase 7's boss.
+- Settings apply at the next stage load; only volumes change live. Jump and left/right turning sensitivity have separate 50–150% sliders (default 100%), and the settings page fills the screen. Low quality drops the bushes layer, sparkles, half the brick debris and cloud drift. Phase 7's boss now consumes the screen-shake setting.
 - Saves: `pip.save` (schema 1) with `pip.save.backup` as the last good save; corrupt saves recover from the backup, then start fresh, with a notice on the menu.
 - Initial bundle 243 kB raw (67 kB transfer); Phaser stays lazy.
 - Open items for the combined review are in [`plans/deferred-review.md`](plans/deferred-review.md).
@@ -178,7 +178,11 @@ Phaser chunk: 1.11 MB raw, 243 kB transfer (arcade-only build). Initial bundle: 
 
 ## Phase 7: Rest of World 1
 
-**Builds:**
+**Status:** In progress. The four World 1 stages, bonus area, themed assets, tubes, moving platforms, hazards, boss, run stats and Phaser integration are implemented. The Angular achievement service/screen, cosmetic catalogue/shop, story screen/flag, and their save/progression wiring remain unbuilt. Phase 7 is not ready for owner review or Phase 8.
+
+Detailed task tracking is in [`plans/phase-7-rest-of-world-1.md`](plans/phase-7-rest-of-world-1.md); outstanding browser checks are in [`plans/deferred-review.md`](plans/deferred-review.md).
+
+**Target:**
 
 - 1-2 underground, 1-3 sky with moving platforms, and 1-4 castle with lava, firebars and the **Rook King** boss
 - each stage theme's scenery and tiles
@@ -197,7 +201,7 @@ Phaser chunk: 1.11 MB raw, 243 kB transfer (arcade-only build). Initial bundle: 
 - the full profiling pass and `docs/perf-report.md` (average and p95 frame time, long frames, memory after 20 restarts, load times, high-refresh check)
 - fixes for whatever the measurements show
 - final polish from earlier reviews
-- **deployment to GitHub Pages.** The owner provides the account, repo name and visibility at this phase. A public repo is needed for free Pages.
+- **deployment to GitHub Pages.** Confirm repository visibility or paid-plan availability with the owner, then ask before changing visibility or deploying. Free Pages requires a public repo.
 
 **Review checklist:**
 

@@ -67,6 +67,13 @@ export class TestRoomScene extends Phaser.Scene {
       this.tuning,
       this.controls.resolve,
       this.isSolidTile,
+      null,
+      undefined,
+      {
+        jump: this.options.settings.jumpSensitivity,
+        left: this.options.settings.leftSensitivity,
+        right: this.options.settings.rightSensitivity,
+      },
     );
     this.physics.add.collider(this.player.sprite, layer);
 

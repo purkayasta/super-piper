@@ -19,8 +19,16 @@ export function mergeSettings(current: GameSettings, patch: SettingsPatch): Game
         : current.quality,
     reducedMotion: patch.reducedMotion ?? current.reducedMotion,
     screenShake: patch.screenShake ?? current.screenShake,
+    jumpSensitivity: sensitivity(patch.jumpSensitivity, current.jumpSensitivity),
+    leftSensitivity: sensitivity(patch.leftSensitivity, current.leftSensitivity),
+    rightSensitivity: sensitivity(patch.rightSensitivity, current.rightSensitivity),
     bindings: bindings ?? current.bindings,
   };
+}
+
+function sensitivity(value: number | undefined, current: number): number {
+  if (value === undefined || !Number.isFinite(value)) return current;
+  return Math.min(1.5, Math.max(0.5, value));
 }
 
 export function sameSettings(a: GameSettings, b: GameSettings): boolean {

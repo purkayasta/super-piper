@@ -24,6 +24,9 @@ describe('SettingsService', () => {
       quality: 'high',
       reducedMotion: true,
       screenShake: true,
+      jumpSensitivity: 1,
+      leftSensitivity: 1,
+      rightSensitivity: 1,
     });
   });
 

@@ -1,7 +1,11 @@
 import Phaser from 'phaser';
 import { DEFAULT_OUTFIT, pipFrameName, type PipOutfit } from '../../../content/art/atlas-frames';
 import { GAMEPLAY_ATLAS_ID } from '../../../content/manifests/asset-manifest';
-import type { MovementTuning } from '../../configuration/movement.config';
+import {
+  DEFAULT_MOVEMENT_SENSITIVITY,
+  type MovementSensitivity,
+  type MovementTuning,
+} from '../../configuration/movement.config';
 import { PLAYER_BIG_BODY, PLAYER_SMALL_BODY, TILE_SIZE } from '../../configuration/physics.config';
 import { CROUCH_HEADROOM_PX, POWER_RULES } from '../../configuration/rules.config';
 import type { PowerForm } from '../../core/game-events';
@@ -61,9 +65,10 @@ export class Player {
     private readonly isSolidTile: (tx: number, ty: number) => boolean,
     private readonly onHeadBump: HeadBumpHandler | null = null,
     private readonly outfit: PipOutfit = DEFAULT_OUTFIT,
+    sensitivity: MovementSensitivity = DEFAULT_MOVEMENT_SENSITIVITY,
   ) {
     ensureGameplayAnimations(scene, outfit);
-    this.controller = new PlayerController(tuning);
+    this.controller = new PlayerController(tuning, sensitivity);
     this.world = scene.physics.world;
     this.sprite = scene.physics.add.sprite(x, y, GAMEPLAY_ATLAS_ID, pipFrameName(outfit, 'idle'));
     const body = this.sprite.body;

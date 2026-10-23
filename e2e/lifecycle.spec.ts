@@ -187,3 +187,33 @@ test('canvas uses smooth browser scaling for the final fit', async ({ page }) =>
   await page.goto('/#/play/test-room');
   await expect(page.locator('canvas')).toHaveCSS('image-rendering', 'auto');
 });
+
+test('settings fills the viewport and exposes independent movement sensitivity', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/#/settings');
+
+  const screen = page.locator('.settings-screen');
+  await expect(screen).toBeVisible();
+  const size = await screen.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    return { width: bounds.width, height: bounds.height };
+  });
+  expect(size.width).toBe(1280);
+  expect(size.height).toBeGreaterThanOrEqual(720);
+
+  for (const [id, value] of [
+    ['jump-sensitivity', '125'],
+    ['left-sensitivity', '75'],
+    ['right-sensitivity', '140'],
+  ]) {
+    await page.getByTestId(id).evaluate((element, nextValue) => {
+      const input = element as HTMLInputElement;
+      input.value = nextValue;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }, value);
+  }
+
+  await expect(screen.locator('output')).toHaveText(['125%', '75%', '140%']);
+});

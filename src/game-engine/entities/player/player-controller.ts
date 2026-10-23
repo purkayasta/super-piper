@@ -1,4 +1,9 @@
-import { JumpTier, MovementTuning } from '../../configuration/movement.config';
+import {
+  DEFAULT_MOVEMENT_SENSITIVITY,
+  JumpTier,
+  MovementSensitivity,
+  MovementTuning,
+} from '../../configuration/movement.config';
 import { ActionState } from '../../systems/input/actions';
 
 export interface Contacts {
@@ -15,6 +20,7 @@ const TIMER_EPSILON_MS = 1e-6;
 
 export class PlayerController {
   private tuning: MovementTuning;
+  private sensitivity: MovementSensitivity;
   private velocityX = 0;
   private velocityY = 0;
   private midpointX = 0;
@@ -33,8 +39,12 @@ export class PlayerController {
   private segmentVelocity = 0;
   private segmentAverage = 0;
 
-  constructor(tuning: MovementTuning) {
+  constructor(
+    tuning: MovementTuning,
+    sensitivity: MovementSensitivity = DEFAULT_MOVEMENT_SENSITIVITY,
+  ) {
     this.tuning = tuning;
+    this.sensitivity = sensitivity;
     this.airMaxSpeed = tuning.walkMaxSpeed;
   }
 
@@ -166,7 +176,7 @@ export class PlayerController {
   }
 
   private launch(): void {
-    this.velocityY = -this.currentTier().launchSpeed;
+    this.velocityY = -this.currentTier().launchSpeed * this.sensitivity.jump;
     this.fallGravityLocked = false;
     this.msSinceGrounded = Infinity;
     this.msSinceJumpPress = Infinity;
@@ -175,17 +185,18 @@ export class PlayerController {
 
   private stepGroundHorizontal(input: number, run: boolean, dt: number): void {
     const tuning = this.tuning;
+    const response = this.sensitivityFor(input);
     const vx = this.velocityX;
     const reversing = input !== 0 && vx !== 0 && Math.sign(vx) !== input;
     if (input === 0) {
       this.moveToward(vx, 0, tuning.releaseDecel, dt);
     } else if (reversing) {
-      this.moveToward(vx, 0, tuning.skidDecel, dt);
+      this.moveToward(vx, 0, tuning.skidDecel * response, dt);
     } else {
       const maxSpeed = run ? tuning.runMaxSpeed : tuning.walkMaxSpeed;
       const rate =
         Math.abs(vx) > maxSpeed ? tuning.releaseDecel : run ? tuning.runAccel : tuning.walkAccel;
-      this.moveToward(vx, input * maxSpeed, rate, dt);
+      this.moveToward(vx, input * maxSpeed, rate * response, dt);
     }
     this.commitHorizontal();
 
@@ -201,8 +212,17 @@ export class PlayerController {
       this.midpointX = this.velocityX;
       return;
     }
-    this.moveToward(this.velocityX, input * this.airMaxSpeed, this.tuning.airAccel, dt);
+    this.moveToward(
+      this.velocityX,
+      input * this.airMaxSpeed,
+      this.tuning.airAccel * this.sensitivityFor(input),
+      dt,
+    );
     this.commitHorizontal();
+  }
+
+  private sensitivityFor(input: number): number {
+    return input < 0 ? this.sensitivity.left : this.sensitivity.right;
   }
 
   private commitHorizontal(): void {

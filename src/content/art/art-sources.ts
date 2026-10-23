@@ -19,12 +19,16 @@ import { ITEM_FRAME_GRIDS, ITEM_PALETTE } from './item-sprites';
 import { OVERWORLD_TILE_ART } from './overworld-tiles';
 import { PIP_BIG_GRIDS, PIP_LOOK_PALETTES, PIP_SMALL_GRIDS } from './pip-sprites';
 import { POWER_UP_FRAME_GRIDS } from './power-up-sprites';
+import { CASTLE_TILE_ART, SKY_TILE_ART, UNDERGROUND_TILE_ART } from './theme-tiles';
 import type { SceneryTheme } from './scenery-layers';
 
 export const SCORE_TEXT_PALETTE: PixelPalette = { K: '#1a1020', W: '#ffffff' };
 
 const TILE_ART_BY_THEME: Readonly<Record<SceneryTheme, Readonly<Record<TileId, () => Raster>>>> = {
   overworld: OVERWORLD_TILE_ART,
+  underground: UNDERGROUND_TILE_ART,
+  sky: SKY_TILE_ART,
+  castle: CASTLE_TILE_ART,
 };
 
 export function gameplayAtlasFrames(): AtlasFrameInput[] {
@@ -65,6 +69,6 @@ export function gameplayAtlasFrames(): AtlasFrameInput[] {
 }
 
 export function tilesetTiles(theme: SceneryTheme): Raster[] {
-  const art = TILE_ART_BY_THEME[theme];
+  const art = TILE_ART_BY_THEME[theme] ?? TILE_ART_BY_THEME.overworld;
   return Array.from({ length: TILE_COUNT }, (_, id) => art[id as TileId]());
 }

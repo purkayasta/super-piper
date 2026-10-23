@@ -8,6 +8,9 @@ export interface GameplaySettings {
   quality: QualityLevel;
   reducedMotion: boolean;
   screenShake: boolean;
+  jumpSensitivity: number;
+  leftSensitivity: number;
+  rightSensitivity: number;
 }
 
 export interface PerfSample {

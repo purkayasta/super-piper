@@ -5,19 +5,26 @@
 .settings-screen {
   display: grid;
   gap: 1.25rem;
-  max-width: 48rem;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  margin: 0;
+  padding: clamp(1rem, 3vw, 3rem);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
 }
 
 .top {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  grid-column: 1 / -1;
 }
 
 .group {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .group h2 {
@@ -80,4 +87,53 @@ kbd:first-child {
 
 .group > .ui-button {
   justify-self: start;
+}
+
+.sensitivity-control {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.5fr) minmax(8rem, 1fr) 3.5rem;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.625rem;
+}
+
+.sensitivity-control input {
+  width: 100%;
+  accent-color: var(--gold);
+}
+
+.sensitivity-control output {
+  color: var(--gold);
+  text-align: right;
+  font-size: 0.5625rem;
+}
+
+.bindings-group,
+.data-group {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 48rem) {
+  .settings-screen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .top,
+  .bindings-group,
+  .data-group {
+    grid-column: auto;
+  }
+
+  .sensitivity-control {
+    grid-template-columns: minmax(5rem, 0.5fr) minmax(5rem, 1fr) 3.5rem;
+    gap: 0.65rem;
+  }
+
+  .bindings li {
+    grid-template-columns: 1fr auto;
+  }
+
+  .keys {
+    grid-row: 2;
+  }
 }

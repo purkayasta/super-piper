@@ -31,7 +31,8 @@ describe('ProgressionService', () => {
     expect(report?.stars).toEqual({ finish: true, postmarks: false, time: true });
     expect(progression.coins()).toBe(30);
     expect(progression.stars()).toBe(2);
-    expect(progression.status('1-2')?.availability).toBe('coming-soon');
+    expect(progression.status('1-2')?.availability).toBe('open');
+    expect(progression.canPlay('1-2')).toBe(true);
     expect(storage.getItem(SAVE_KEYS.primary)).toContain('"coins":30');
   });
 

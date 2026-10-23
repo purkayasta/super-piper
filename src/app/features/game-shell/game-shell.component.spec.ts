@@ -129,7 +129,14 @@ describe('GameShellComponent', () => {
     expect(factory.mock.calls[0][2]).toEqual({
       devTools: false,
       initialStageId: 'test-room',
-      settings: { quality: 'high', reducedMotion: false, screenShake: true },
+      settings: {
+        quality: 'high',
+        reducedMotion: false,
+        screenShake: true,
+        jumpSensitivity: 1,
+        leftSensitivity: 1,
+        rightSensitivity: 1,
+      },
       bindings: DEFAULT_BINDINGS,
     });
   });

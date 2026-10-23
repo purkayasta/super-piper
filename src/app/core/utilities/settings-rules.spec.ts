@@ -13,6 +13,9 @@ describe('settings defaults', () => {
       quality: 'high',
       reducedMotion: false,
       screenShake: true,
+      jumpSensitivity: 1,
+      leftSensitivity: 1,
+      rightSensitivity: 1,
       bindings: DEFAULT_BINDINGS,
     });
   });
@@ -26,6 +29,9 @@ describe('settings defaults', () => {
       quality: 'high',
       reducedMotion: false,
       screenShake: true,
+      jumpSensitivity: 1,
+      leftSensitivity: 1,
+      rightSensitivity: 1,
     });
   });
 });
@@ -46,6 +52,20 @@ describe('mergeSettings', () => {
     });
     expect(merged.volumes.sfx).toBe(1);
     expect(merged.quality).toBe('high');
+  });
+
+  it('clamps movement sensitivity to its supported range', () => {
+    expect(
+      mergeSettings(DEFAULTS, {
+        jumpSensitivity: 2,
+        leftSensitivity: 0.25,
+        rightSensitivity: 1.25,
+      }),
+    ).toMatchObject({
+      jumpSensitivity: 1.5,
+      leftSensitivity: 0.5,
+      rightSensitivity: 1.25,
+    });
   });
 
   it('keeps the current bindings when the new ones conflict', () => {

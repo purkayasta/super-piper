@@ -9,6 +9,9 @@ export interface GameSettings {
   readonly quality: QualityLevel;
   readonly reducedMotion: boolean;
   readonly screenShake: boolean;
+  readonly jumpSensitivity: number;
+  readonly leftSensitivity: number;
+  readonly rightSensitivity: number;
   readonly bindings: KeyBindings;
 }
 
@@ -18,6 +21,9 @@ export function defaultSettings(prefersReducedMotion: boolean): GameSettings {
     quality: 'high',
     reducedMotion: prefersReducedMotion,
     screenShake: true,
+    jumpSensitivity: 1,
+    leftSensitivity: 1,
+    rightSensitivity: 1,
     bindings: DEFAULT_BINDINGS,
   };
 }
@@ -27,5 +33,8 @@ export function gameplaySettings(settings: GameSettings): GameplaySettings {
     quality: settings.quality,
     reducedMotion: settings.reducedMotion,
     screenShake: settings.screenShake,
+    jumpSensitivity: settings.jumpSensitivity,
+    leftSensitivity: settings.leftSensitivity,
+    rightSensitivity: settings.rightSensitivity,
   };
 }

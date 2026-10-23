@@ -33,7 +33,7 @@ export const STAGE_1_2: LevelDefinition = {
     { kind: 'enemy', enemy: 'thornbug', column: 16, row: 12 },
     { kind: 'enemy', enemy: 'thornbug', column: 26, row: 12 },
     { kind: 'enemy', enemy: 'shellback', column: 36, row: 12 },
-    { kind: 'enemy', enemy: 'thornbug', column: 44, row: 12 },
+    { kind: 'enemy', enemy: 'thornbug', column: 58, row: 12 },
     { kind: 'enemy', enemy: 'thornbug', column: 47, row: 12 },
     { kind: 'enemy', enemy: 'thornbug', column: 50, row: 12 },
     { kind: 'enemy', enemy: 'thornbug', column: 53, row: 12 },

@@ -54,15 +54,17 @@ describe('WorldMapComponent', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('shows progress after a clear and marks the next stage as coming soon', async () => {
+  it('shows progress after a clear and opens the next built stage', async () => {
     TestBed.inject(ProgressionService).recordClear(
       stageResult({ score: 15000, timeUsed: 99, postmarksCollected: [0, 1, 2] }),
     );
-    const { node, details } = await render();
+    const { fixture, node, details } = await render();
     expect(node('1-1').querySelector('app-star-row')?.getAttribute('aria-label')).toBe(
       '3 of 3 stars',
     );
-    expect(node('1-2').textContent).toContain('SOON');
+    expect(node('1-2').className).toContain('open');
+    node('1-1').click();
+    await fixture.whenStable();
     expect(details().textContent).toContain('015000');
     expect(details().textContent).toContain('099');
   });

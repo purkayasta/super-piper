@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { rasterizeGrid, unknownSymbols } from '../../asset-pipeline/pixel-grid';
 import { getPixel } from '../../asset-pipeline/raster';
 import { TILE_COUNT, TILESET_LAYOUT } from '../../game-engine/world/tile-ids';
-import { gameplayAtlasFrames } from './art-sources';
+import { gameplayAtlasFrames, tilesetTiles } from './art-sources';
 import {
   EnemyFrame,
   ItemFrame,
@@ -23,6 +23,7 @@ import { ITEM_FRAME_GRIDS, ITEM_PALETTE } from './item-sprites';
 import { OVERWORLD_TILE_ART } from './overworld-tiles';
 import { PIP_BIG_GRIDS, PIP_LOOK_PALETTES, PIP_PALETTE, PIP_SMALL_GRIDS } from './pip-sprites';
 import { POWER_UP_FRAME_GRIDS } from './power-up-sprites';
+import { SCENERY_THEMES } from './scenery-layers';
 
 function expectSize(grid: readonly string[], width: number, height: number): void {
   expect(grid).toHaveLength(height);
@@ -147,5 +148,18 @@ describe('overworld tiles', () => {
     const dirt = OVERWORLD_TILE_ART[1]();
     expect(getPixel(top, 8, 1)).not.toEqual(getPixel(dirt, 8, 1));
     expect(getPixel(top, 8, 12)).toEqual(getPixel(dirt, 8, 12));
+  });
+
+  it('builds a complete tileset for every scenery theme', () => {
+    for (const theme of SCENERY_THEMES) {
+      const tiles = tilesetTiles(theme);
+      expect(tiles).toHaveLength(TILE_COUNT);
+      for (const tile of tiles) {
+        expect([tile.width, tile.height]).toEqual([
+          TILESET_LAYOUT.tileSize,
+          TILESET_LAYOUT.tileSize,
+        ]);
+      }
+    }
   });
 });

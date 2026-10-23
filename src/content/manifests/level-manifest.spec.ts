@@ -28,6 +28,12 @@ describe('level manifest', () => {
     expect(stageEntry(FIRST_STAGE_ID)?.level?.id).toBe(FIRST_STAGE_ID);
   });
 
+  it('registers the rest of World 1 as built levels', () => {
+    expect(stageEntry('1-2')?.level?.id).toBe('1-2');
+    expect(stageEntry('1-3')?.level?.id).toBe('1-3');
+    expect(stageEntry('1-4')?.level?.id).toBe('1-4');
+  });
+
   it('only references asset ids that exist in the asset manifest', () => {
     for (const entry of Object.values(STAGES)) {
       for (const id of entry.assets) expect(Object.hasOwn(ASSET_MANIFEST, id), id).toBe(true);
@@ -44,16 +50,18 @@ describe('level manifest', () => {
 describe('1-1', () => {
   const level = stageEntry('1-1')!.level!;
 
-  it('validates cleanly against the known stages', () => {
-    expect(validateLevel(level, { knownStages: new Set(Object.keys(STAGES)) })).toEqual([]);
+  it('validates cleanly', () => {
+    expect(validateLevel(level)).toEqual([]);
   });
 
   it('is a long overworld stage with a goal, a depot door and three Postmarks', () => {
     const compiled = compileLevel(level);
+    const goal = compiled.goal;
+    if (goal === null) throw new Error('Expected a compiled goal');
     expect(level.theme).toBe('overworld');
     expect(compiled.width).toBeGreaterThanOrEqual(200);
     expect(compiled.postmarks).toHaveLength(3);
-    expect(compiled.doorColumn).toBeGreaterThan(compiled.goal.column);
+    expect(compiled.doorColumn).toBeGreaterThan(goal.column);
     expect(compiled.coins.length).toBeGreaterThan(20);
     expect(compiled.tubes.length).toBeGreaterThan(3);
   });
@@ -69,9 +77,11 @@ describe('1-1', () => {
 
   it('has one checkpoint about halfway to the goal', () => {
     const compiled = compileLevel(level);
+    const goal = compiled.goal;
+    if (goal === null) throw new Error('Expected a compiled goal');
     const checkpoint = compiled.checkpoint!;
-    expect(checkpoint.column / compiled.goal.column).toBeGreaterThan(0.4);
-    expect(checkpoint.column / compiled.goal.column).toBeLessThan(0.6);
+    expect(checkpoint.column / goal.column).toBeGreaterThan(0.4);
+    expect(checkpoint.column / goal.column).toBeLessThan(0.6);
   });
 
   it('keeps every enemy spawn on an empty cell so none starts inside a block', () => {

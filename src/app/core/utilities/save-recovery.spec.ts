@@ -70,6 +70,8 @@ describe('validateSave', () => {
     ['a text score', ['progression', 'stages', '1-1', 'bestScore'], '900'],
     ['a star that is not a flag', ['progression', 'stages', '1-1', 'stars', 'time'], 1],
     ['a volume above 1', ['settings', 'volumes', 'music'], 1.2],
+    ['jump sensitivity below its range', ['settings', 'jumpSensitivity'], 0.25],
+    ['turn sensitivity above its range', ['settings', 'rightSensitivity'], 2],
     ['an unknown quality', ['settings', 'quality'], 'ultra'],
     ['conflicting key bindings', ['settings', 'bindings'], { ...DEFAULT_BINDINGS, jump: ['KeyA'] }],
     ['an unknown outfit', ['cosmetics', 'equipped'], 'tuxedo'],

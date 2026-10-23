@@ -92,6 +92,13 @@ function readSettings(value: unknown, defaults: GameSettings): GameSettings {
     quality: optional(settings['quality'], defaults.quality, quality),
     reducedMotion: optional(settings['reducedMotion'], defaults.reducedMotion, flag),
     screenShake: optional(settings['screenShake'], defaults.screenShake, flag),
+    jumpSensitivity: optional(settings['jumpSensitivity'], defaults.jumpSensitivity, sensitivity),
+    leftSensitivity: optional(settings['leftSensitivity'], defaults.leftSensitivity, sensitivity),
+    rightSensitivity: optional(
+      settings['rightSensitivity'],
+      defaults.rightSensitivity,
+      sensitivity,
+    ),
     bindings: bindings === undefined ? defaults.bindings : orCorrupt(validateBindings(bindings)),
   };
 }
@@ -142,6 +149,13 @@ function count(value: unknown): number {
 
 function unitInterval(value: unknown): number {
   if (typeof value !== 'number' || !(value >= 0 && value <= 1)) throw new CorruptField();
+  return value;
+}
+
+function sensitivity(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0.5 || value > 1.5) {
+    throw new CorruptField();
+  }
   return value;
 }
 

@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import type { GameplaySettings } from '../../core/game-events';
 import { effectProfile } from './effect-profile';
 
-const HIGH: GameplaySettings = { quality: 'high', reducedMotion: false, screenShake: true };
+const HIGH: GameplaySettings = {
+  quality: 'high',
+  reducedMotion: false,
+  screenShake: true,
+  jumpSensitivity: 1,
+  leftSensitivity: 1,
+  rightSensitivity: 1,
+};
 
 describe('effectProfile', () => {
   it('keeps every effect on High', () => {

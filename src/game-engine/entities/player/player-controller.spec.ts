@@ -59,6 +59,25 @@ describe('PlayerController', () => {
     expect(controller.vx).toBeCloseTo(93.75, 2);
   });
 
+  it('applies separate left and right turn sensitivity to acceleration', () => {
+    const left = new PlayerController(DEFAULT_MOVEMENT, { jump: 1, left: 0.5, right: 1 });
+    const right = new PlayerController(DEFAULT_MOVEMENT, { jump: 1, left: 1, right: 0.5 });
+    left.step(actions({ left: true }), GROUND, DT);
+    right.step(actions({ right: true }), GROUND, DT);
+    expect(Math.abs(left.vx)).toBeCloseTo(DEFAULT_MOVEMENT.walkAccel * DT * 0.5);
+    expect(Math.abs(right.vx)).toBeCloseTo(DEFAULT_MOVEMENT.walkAccel * DT * 0.5);
+  });
+
+  it('scales jump launch speed with jump sensitivity', () => {
+    const standard = new PlayerController(DEFAULT_MOVEMENT);
+    const reduced = new PlayerController(DEFAULT_MOVEMENT, { jump: 0.5, left: 1, right: 1 });
+    for (const controller of [standard, reduced]) {
+      controller.step(actions(), GROUND, DT);
+      controller.step(actions({ jump: true }), GROUND, DT);
+    }
+    expect(Math.abs(reduced.vy)).toBeLessThan(Math.abs(standard.vy));
+  });
+
   it('walk acceleration rate', () => {
     const controller = simulate(HZ, 0.5, () => actions({ right: true }));
     expect(Math.abs(controller.vx - 66.8)).toBeLessThanOrEqual(1);

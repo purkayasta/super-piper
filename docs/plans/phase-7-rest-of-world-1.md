@@ -87,49 +87,54 @@ src/app/core/services/cosmetics.service.ts
 src/app/features/achievements/*, character-shop/*, story/*
 ```
 
+The Angular achievement, shop and story paths above are planned; they do not exist in the current tree.
+
 ---
 
 ### Task 1: Level format, validator, compiler
 
-- [ ] **Step 1 (TDD):** tile ids for lava and the gate; legend symbols `~` (lava surface), `=` (lava), `g` (gate).
-- [ ] **Step 2 (TDD):** validator: platforms (bounds, width 2–4, path in bounds, period, phase, empty start cells), firebars (solid anchor, 2–8 balls, speed), at most one boss (on ground, inside a one-view arena that ends at a gate column of `g`, goal past the gate), tube ids unique, tube links resolve to an exit tube in an existing area, bonus rooms (no goal, Postmarks, checkpoint or boss; at least one way out).
-- [ ] **Step 3 (TDD):** compiler: `compileArea` for the main area and sub-areas; platforms, firebars, boss arena, lava cells, tube ids and links.
+- [x] **Step 1 (TDD):** tile ids for lava and the gate; legend symbols `~` (lava surface), `=` (lava), `g` (gate).
+- [x] **Step 2 (TDD):** validator: platforms (bounds, width 2–4, path in bounds, period, phase, empty start cells), firebars (solid anchor, 2–8 balls, speed), at most one boss (on ground, inside a one-view arena that ends at a gate column of `g`, goal past the gate), tube ids unique, tube links resolve to an exit tube in an existing area, bonus rooms (no goal, Postmarks, checkpoint or boss; at least one way out).
+- [x] **Step 3 (TDD):** compiler: `compileArea` for the main area and sub-areas; platforms, firebars, boss arena, lava cells, tube ids and links.
 
 ### Task 2: Pure systems
 
-- [ ] **Step 1 (TDD):** `MovingPlatforms` and `PlatformRider`; riding, jumping off, landing on a rising platform and jumping up through, all within 1px at 60/120/144Hz.
-- [ ] **Step 2 (TDD):** `Firebars` geometry and hit test; `HazardField` lava contact.
-- [ ] **Step 3 (TDD):** `ScreenShake`; `findEnterableTube`; `TubeTransition`.
-- [ ] **Step 4 (TDD):** `RookKing` (pattern, telegraphs, hop, throw, hurt window, defeat) and `RookStone`; `BossFight` (camera lock, start, stomp vs touch, parcels, star, gate, events).
-- [ ] **Step 5 (TDD):** `MusicDirector` boss track; `stageSoundIds` for areas and the boss; `StageSession` clock carry; `RunStats` and milestones.
+- [x] **Step 1 (TDD):** `MovingPlatforms` and `PlatformRider`; riding, jumping off, landing on a rising platform and jumping up through, all within 1px at 60/120/144Hz.
+- [x] **Step 2 (TDD):** `Firebars` geometry and hit test; `HazardField` lava contact.
+- [x] **Step 3 (TDD):** `ScreenShake`; `findEnterableTube`; `TubeTransition`.
+- [x] **Step 4 (TDD):** `RookKing` (pattern, telegraphs, hop, throw, hurt window, defeat) and `RookStone`; `BossFight` (camera lock, start, stomp vs touch, parcels, star, gate, events).
+- [x] **Step 5 (TDD):** `MusicDirector` boss track; `stageSoundIds` for areas and the boss; `StageSession` clock carry; `RunStats` and milestones.
 
 ### Task 3: Art and pipeline
 
-- [ ] **Step 1:** theme tilesets (underground, sky, castle) and lava and gate tiles for every theme.
-- [ ] **Step 2:** atlas: platforms, firebar balls, the Rook King and his stone, four new outfits.
-- [ ] **Step 3:** per-theme scenery layers and generators; quality skips detail layers.
-- [ ] **Step 4 (TDD):** art and manifest specs (sizes, palettes, unique frames, every theme has every tile and its scenery).
+- [x] **Step 1:** theme tilesets (underground, sky, castle) and lava and gate tiles for every theme.
+- [x] **Step 2:** atlas: platforms, firebar balls, the Rook King and his stone, four new outfits.
+- [x] **Step 3:** per-theme scenery layers and generators; quality skips detail layers.
+- [x] **Step 4 (TDD):** art and manifest specs (sizes, palettes, unique frames, every theme has every tile and its scenery).
 
 ### Task 4: Levels
 
-- [ ] **Step 1:** 1-2, 1-3 and 1-4 layouts (original), the 1-1 bonus room and its tubes.
-- [ ] **Step 2 (TDD):** level specs: each validates, uses its theme and teaching elements; the manifest lists per-stage assets.
+- [x] **Step 1:** 1-2, 1-3 and 1-4 layouts (original), the 1-1 bonus room and its tubes.
+- [x] **Step 2 (TDD):** level specs: each validates, uses its theme and teaching elements; the manifest lists per-stage assets.
 
 ### Task 5: LevelScene and Phaser glue
 
-- [ ] **Step 1:** areas and tube travel; platforms (world-step order) and their sprites.
-- [ ] **Step 2:** lava layer and contact; firebars and their sprites.
-- [ ] **Step 3:** the boss fight, camera lock, gate, screen shake, boss music and SFX.
-- [ ] **Step 4:** outfit, run stats, milestones, `bossDefeated`; clean-up removes the new listeners.
+- [x] **Step 1:** areas and tube travel; platforms (world-step order) and their sprites.
+- [x] **Step 2:** lava layer and contact; firebars and their sprites.
+- [x] **Step 3:** the boss fight, camera lock, gate, screen shake, boss music and SFX.
+- [x] **Step 4:** outfit, run stats, milestones, `bossDefeated`; clean-up removes the new listeners.
 
 ### Task 6: Angular
 
-- [ ] **Step 1 (TDD):** achievement definitions and rules; `AchievementService`.
-- [ ] **Step 2 (TDD):** outfit catalogue and shop rules; `CosmeticsService`; save validation of outfits, achievements and flags.
-- [ ] **Step 3:** achievements, shop and story screens (specs); menu, results and shell wiring; routes.
+- [ ] **Step 1 (TDD):** achievement definitions and rules; `AchievementService`. Not started; gameplay emits milestone facts, but Angular does not yet unlock or persist achievements.
+- [ ] **Step 2 (TDD):** outfit catalogue and shop rules; `CosmeticsService`; save validation of outfits, achievements and flags. Not started; save data currently stores generic cosmetics/achievement IDs only.
+- [ ] **Step 3:** achievements, shop and story screens (specs); menu, results and shell wiring; routes. Not started; the story-seen flag is also absent.
 
 ### Task 7: Verify and document
 
-- [ ] `npm test` passes; `NG_CLI_ANALYTICS=false npm run build` succeeds; bundle sizes recorded.
-- [ ] `deferred-review.md` Phase 7 section; earlier deferred bullets ticked; `docs/plan.md` status and link; `engine.md` notes.
-- [ ] Prettier on changed files only.
+- [x] Current core suite passes (`npm test`, 811 tests); `npm run build` succeeds with asset and level validation.
+- [ ] Final bundle sizes re-recorded after Angular features are complete.
+- [x] `deferred-review.md` Phase 7 section; `docs/plan.md` status and link; `engine.md` notes.
+- [x] Prettier on changed files only.
+
+**Current build baseline (2026-10-23, before Angular Phase 7 features):** 245.99 kB initial raw / 67.69 kB estimated transfer; Phaser lazy chunk 1.18 MB raw / 261.36 kB estimated transfer. Tasks 1–5 are implemented. Task 6 and final Phase 7 verification/review remain; the phase is not complete.

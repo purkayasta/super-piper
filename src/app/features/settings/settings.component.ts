@@ -67,6 +67,18 @@ export class SettingsComponent {
     this.settingsService.update({ quality });
   }
 
+  protected setJumpSensitivity(value: number): void {
+    this.settingsService.update({ jumpSensitivity: value });
+  }
+
+  protected setLeftSensitivity(value: number): void {
+    this.settingsService.update({ leftSensitivity: value });
+  }
+
+  protected setRightSensitivity(value: number): void {
+    this.settingsService.update({ rightSensitivity: value });
+  }
+
   protected toggleReducedMotion(): void {
     this.settingsService.update({ reducedMotion: !this.settings().reducedMotion });
   }

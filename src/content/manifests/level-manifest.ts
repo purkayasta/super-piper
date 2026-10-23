@@ -1,6 +1,9 @@
 import type { StageId } from '../../game-engine/core/game-events';
 import type { LevelDefinition } from '../../game-engine/world/level-format';
 import { STAGE_1_1 } from '../levels/world-1/stage-1-1';
+import { STAGE_1_2 } from '../levels/world-1/stage-1-2';
+import { STAGE_1_3 } from '../levels/world-1/stage-1-3';
+import { STAGE_1_4 } from '../levels/world-1/stage-1-4';
 import { GAMEPLAY_ATLAS_ID, tilesetAssetId, type AssetId } from './asset-manifest';
 import { TEST_ROOM_STAGE_ID } from './stage-ids';
 
@@ -25,6 +28,24 @@ export const STAGES: Readonly<Record<StageId, StageEntry>> = {
     label: STAGE_1_1.label,
     assets: PIXEL_ART_ASSETS,
     level: STAGE_1_1,
+  },
+  [STAGE_1_2.id]: {
+    sceneKey: LEVEL_SCENE_KEY,
+    label: STAGE_1_2.label,
+    assets: [GAMEPLAY_ATLAS_ID, tilesetAssetId('underground')],
+    level: STAGE_1_2,
+  },
+  [STAGE_1_3.id]: {
+    sceneKey: LEVEL_SCENE_KEY,
+    label: STAGE_1_3.label,
+    assets: [GAMEPLAY_ATLAS_ID, tilesetAssetId('sky')],
+    level: STAGE_1_3,
+  },
+  [STAGE_1_4.id]: {
+    sceneKey: LEVEL_SCENE_KEY,
+    label: STAGE_1_4.label,
+    assets: [GAMEPLAY_ATLAS_ID, tilesetAssetId('castle')],
+    level: STAGE_1_4,
   },
 };
 

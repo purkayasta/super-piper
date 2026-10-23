@@ -21,6 +21,13 @@ const CLEAR: StageResult = {
   postmarks: 2,
   postmarksCollected: [0, 2],
   postmarkTotal: 3,
+  stats: {
+    hits: 0,
+    finishPower: 'big',
+    bossDefeated: false,
+    bossStompHits: 0,
+    milestones: [],
+  },
 };
 
 const TARGET = 150;

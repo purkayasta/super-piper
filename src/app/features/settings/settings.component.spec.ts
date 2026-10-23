@@ -31,7 +31,8 @@ describe('SettingsComponent', () => {
 
   it('binds the three volume sliders to the audio settings', async () => {
     const { fixture, element } = await render();
-    const sliders = [...element.querySelectorAll<HTMLInputElement>('input[type="range"]')];
+    const audio = element.querySelector('[aria-labelledby="audio-heading"]')!;
+    const sliders = [...audio.querySelectorAll<HTMLInputElement>('input[type="range"]')];
     expect(sliders.map((slider) => Number(slider.value) / 100)).toEqual([
       DEFAULT_VOLUMES.master,
       DEFAULT_VOLUMES.music,
@@ -64,6 +65,25 @@ describe('SettingsComponent', () => {
     });
     expect(byTestId('quality-low').getAttribute('aria-pressed')).toBe('true');
     expect(byTestId('quality-high').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('saves jump and directional turning sensitivity from the sliders', async () => {
+    const { fixture, byTestId } = await render();
+    const jump = byTestId('jump-sensitivity') as HTMLInputElement;
+    const left = byTestId('left-sensitivity') as HTMLInputElement;
+    const right = byTestId('right-sensitivity') as HTMLInputElement;
+    jump.value = '125';
+    left.value = '75';
+    right.value = '140';
+    jump.dispatchEvent(new Event('input'));
+    left.dispatchEvent(new Event('input'));
+    right.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(TestBed.inject(SettingsService).settings()).toMatchObject({
+      jumpSensitivity: 1.25,
+      leftSensitivity: 0.75,
+      rightSensitivity: 1.4,
+    });
   });
 
   it('rebinds a key from the next key press, and Esc cancels', async () => {

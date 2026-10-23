@@ -6,13 +6,13 @@ The owner's top priorities, in order: **a measured, stutter-free frame rate**, w
 
 ## Read first
 
-| Doc | Authority on |
-|---|---|
-| `game.md` | Architecture and performance rules. Applies in full and is never contradicted. |
-| `docs/design.md` | What the game is: look, feel, sound, content, progression. |
-| `docs/engine.md` | How it is built: rendering, timing, systems, pipeline, bridge, saves, perf budget, hosting. |
-| `docs/plan.md` | Phase roadmap and review checklists. |
-| `docs/plans/phase-N-*.md` | Detailed task plan for the current phase. |
+| Doc                       | Authority on                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| `game.md`                 | Architecture and performance rules. Applies in full and is never contradicted.              |
+| `docs/design.md`          | What the game is: look, feel, sound, content, progression.                                  |
+| `docs/engine.md`          | How it is built: rendering, timing, systems, pipeline, bridge, saves, perf budget, hosting. |
+| `docs/plan.md`            | Phase roadmap and review checklists.                                                        |
+| `docs/plans/phase-N-*.md` | Detailed task plan for the current phase.                                                   |
 
 ## How work proceeds
 
@@ -34,7 +34,7 @@ The owner's top priorities, in order: **a measured, stutter-free frame rate**, w
 
 ## Code style (owner preferences)
 
-- **No explanatory `//` comments.** Make code self-explanatory through naming and extraction. Comment only a genuinely hidden *why*, such as a browser or Phaser quirk or a timing rule.
+- **No explanatory `//` comments.** Make code self-explanatory through naming and extraction. Comment only a genuinely hidden _why_, such as a browser or Phaser quirk or a timing rule.
 - File names follow `game.md` §2: `*.component.ts` and `*.service.ts`. Use `ng generate ... --type=component` and similar.
 - Angular uses standalone components, OnPush, signals, zoneless change detection and lazy routes.
 - Before every commit, run `npx prettier --write` on **changed files only**, and include the result in the commit. Never reformat untouched files.
@@ -45,13 +45,14 @@ The owner's top priorities, in order: **a measured, stutter-free frame rate**, w
 
 ## Commands
 
-| Command | Purpose |
-|---|---|
-| `npm start` | Dev server at http://localhost:4200 (dev tools on) |
-| `npm run preview` | Production build served at http://localhost:4300. Add `/?dev=1#/...` for the overlay |
-| `npm test` | Vitest unit tests |
-| `npm run e2e` | Playwright lifecycle, memory and resize tests |
-| `npm run build:pages` | GitHub Pages build |
+| Command               | Purpose                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| `npm start`           | Dev server at http://localhost:4200 (dev tools on)                                   |
+| `npm run preview`     | Production build served at http://localhost:4300. Add `/?dev=1#/...` for the overlay |
+| `npm test`            | Angular unit-test builder (Vitest)                                                   |
+| `npx vitest run`      | Run Vitest directly; use `npm test` for Angular TestBed specs                        |
+| `npm run e2e`         | Playwright lifecycle, memory and resize tests                                        |
+| `npm run build:pages` | GitHub Pages build                                                                   |
 
 **In-game dev keys:** backtick toggles the perf overlay, and **F2** toggles the movement tuning panel.
 

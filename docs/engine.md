@@ -13,7 +13,7 @@ Anything marked _(builder's call)_ was decided during design without the owner. 
 | App shell              | **Angular 22**: standalone components, zoneless change detection, signals, OnPush, lazy-loaded routes                                                                                                                                                                                                                                                                       |
 | Game engine            | **Phaser 3.90** (latest 3.x; `game.md` requires Phaser 3), Arcade Physics                                                                                                                                                                                                                                                                                                   |
 | Language               | TypeScript, strict mode                                                                                                                                                                                                                                                                                                                                                     |
-| Unit tests             | Vitest (Angular's default runner)                                                                                                                                                                                                                                                                                                                                           |
+| Unit tests             | Angular's unit-test builder (`npm test`, Vitest-backed); direct Vitest runs are available for pure tests                                                                                                                                                                                                                                                                    |
 | Browser tests          | Playwright (Chromium; mobile emulation for touch)                                                                                                                                                                                                                                                                                                                           |
 | Build-time asset tools | Node scripts (`scripts/*.ts`) run with Node's built-in TypeScript type stripping and a small resolve hook. PNG and lossless WebP are encoded by in-repo pure-TS encoders, so there is no `sharp` and no new dependency (Phase 3). Audio is rendered by a small pure-TS chiptune synth and written as FLAC by an in-repo encoder, so `lamejs` is not needed either (Phase 5) |
 | Hosting                | GitHub Pages via GitHub Actions; fully static, no server                                                                                                                                                                                                                                                                                                                    |
@@ -69,9 +69,9 @@ The workspace lives at the repo root, `C:\Users\Home\source\repos\mario`, follow
 
 ### 4.2 Input
 
-- **Sources:** keyboard (rebindable, with bindings stored in settings), gamepad through Phaser's gamepad plugin, and touch.
+- **Sources:** keyboard (rebindable, with bindings stored in settings) and gamepad through Phaser's gamepad plugin. Touch controls are planned for Phase 8. Saved jump and independent left/right turning sensitivity (50–150%, default 100%) are applied at stage start.
 - **Default keys:** move with Arrows/WASD; jump with Space, Z or K; run/throw with Shift, X or J; pause with Esc or Enter. _(Builder's call.)_
-- **Touch:** on-screen buttons are drawn and handled inside Phaser with multi-touch pointers, not as DOM buttons, to keep latency low. They appear only on touch devices.
+- **Touch target:** on-screen buttons will be drawn and handled inside Phaser with multi-touch pointers, not as DOM buttons, to keep latency low. They appear only on touch devices.
 
 ### 4.3 Enemies, items, projectiles
 
@@ -134,13 +134,14 @@ Hand-made art can replace any generated file by being placed at the manifest pat
   - a `GameCommand` discriminated union: `startStage`, `pause`, `resume`, `restart`, `quitToMap`, `applySettings`, `requestSnapshot`
   - a `GameEvent` union: `loadProgress`, `loadComplete`, `hudChanged` (score/coins/time/lives/power, emitted only on change; time once per in-game second), `checkpoint`, `stageComplete`, `playerDied`, `gameOver`, `bossDefeated`, `milestone`, `recoverableError`
 - **Pause (Phase 6):** Phaser turns the pause binding or gamepad Start into a `pauseRequested` event. Angular decides, sends `pause`, and shows the overlay only when the scene answers `paused`. A pause asked for before `loadComplete` is sent just after it. Settings and key bindings reach Phaser once, in `GameOptions.settings` and `GameOptions.bindings`; quality and reduced motion become a pure `EffectProfile` in the scene. `stageComplete` carries the time used, the coins collected and the Postmarks collected, which Angular turns into stars, bests, coins and XP.
+- **World 1 events (Phase 7):** Phaser emits boss-defeat and rare milestone facts and includes run stats in results. The Angular achievement consumers are not implemented yet.
 - `GameSessionService` (Angular) is the only thing that touches the Phaser instance. It sends commands and exposes events as signals for templates.
 - **Audio (Phase 5):** one Web Audio engine (`game-engine/audio/web-audio-engine.ts`, no Phaser) lives for the app's lifetime, owned by Angular's `AudioService`. Phaser's own sound system is off (`audio.noAudio`). The game factory receives the engine as the narrow `GameAudio` port (`prepare`, `playSfx`, `playMusic`, `pauseMusic`, `resumeMusic`, `stopAll`), stored in the registry like the bridge. Scenes call it on gameplay events only, never per frame, and a pure `MusicDirector` decides the track. Volumes never cross the bridge: they are Angular settings applied straight to the engine. No `AudioContext` exists before the first user gesture; leaving the play route stops every sound.
 - **Lifecycle:** `GameShellComponent` creates the Phaser game once in `afterNextRender` and calls `game.destroy(true)` in `ngOnDestroy`. Pause and results are overlays inside the shell. The game is paused, never recreated, while an overlay shows. Every scene unregisters its listeners and stops its timers and tweens on `shutdown`. Sound outlives a `scene.restart` (a death jingle must finish), and `GameSessionService.detach` stops it all.
 
 ## 8. Routing and screens
 
-- **Routes** use hash location for zero-config GitHub Pages deep links _(builder's call)_: `#/` menu, `#/map`, `#/play/:stageId`, `#/settings`, `#/achievements`, `#/shop`.
+- **Implemented routes** use hash location for zero-config GitHub Pages deep links _(builder's call)_: `#/` menu, `#/map`, `#/play/:stageId`, and `#/settings`. The Phase 7 targets `#/achievements`, `#/shop`, and `#/story` are not implemented yet.
 - Every feature is lazy-loaded. The Phaser bundle is only loaded by the play route.
 - **Menu input (Phase 6):** the `appMenuNav` directive moves focus with the arrow keys and sends Esc as "back". `GamepadMenuService` polls the first gamepad only while a menu is on screen and a pad is connected, and feeds the same directive (d-pad/stick move, A confirm, B back, Start).
 - **UI rules:** plain HTML/CSS with the Press Start 2P font (self-hosted). Transitions use only transform and opacity. No large blur, shadow or filter effects.
@@ -152,6 +153,7 @@ Hand-made art can replace any generated file by being placed at the manifest pat
 - The last good save is kept under `pip.save.backup`.
 - **Recovery:** a corrupt save falls back to the backup, then to a fresh save, and the user sees a notice.
 - **As built (Phase 6):** schema version 1 holds `progression`, `settings`, `cosmetics` and `achievements`. A wrong type or impossible value is corruption; a missing field takes its default; unknown stage IDs are dropped. The backup slot holds the primary as it was before the latest write. The damaged text is kept under `pip.save.corrupt`. With no usable storage the game runs from memory and says so. The pure rules are in `src/app/core/utilities/save-*.ts`.
+- The cosmetics and achievements fields currently store generic IDs; Phase 7 still needs their catalogues, rules, services and screens before purchases or unlocks can use them.
 - **Timing:**
   - Write immediately on stage completion, purchase and achievement.
   - Debounce settings writes by 500ms.
@@ -198,12 +200,10 @@ Dev-only, an HTML overlay. It edits movement and physics values live, and has "c
 
 ## 11. Hosting
 
-- A GitHub Actions workflow runs on every push to `main`:
+- A manually dispatched GitHub Actions workflow (`workflow_dispatch`) builds and deploys to GitHub Pages:
   1. `npm ci`
-  2. generate assets
-  3. validate assets and levels
-  4. tests
-  5. `ng build --base-href /<repo>/`
-  6. deploy to GitHub Pages
+  2. `npm test`
+  3. `npm run build:pages` (generates assets and validates asset/level manifests before building)
+  4. upload the Pages artifact and deploy it
 - Free for public repos. A private repo needs a paid GitHub plan for Pages.
-- **Repo account, name and visibility are deliberately deferred by the owner.** From Phase 1 the build stays Pages-ready: the base-href is configurable, routing uses hash location, and the workflow file is in the repo. The owner is asked for the account and repo at the deploy phase in `plan.md`. Until then, reviews run on the local dev server and on a local production build.
+- The repository is private. Free GitHub Pages requires a public repository; private-repository Pages may require a paid plan. Ask the owner about visibility and obtain explicit approval before any deployment. The build remains Pages-ready through a relative base href and hash routing. Until deployment is approved, reviews use the local dev server or production preview.
